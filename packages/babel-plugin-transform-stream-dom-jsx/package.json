@@ -1,0 +1,41 @@
+{
+  "name": "babel-plugin-transform-stream-dom-jsx",
+  "version": "0.0.0",
+  "description": "Transform JSX into stream-dom function calls",
+  "main": "src/index.js",
+  "files": [
+    "src"
+  ],
+  "directories": {
+    "test": "test"
+  },
+  "scripts": {
+    "test": "mocha --ui tdd --compilers js:babel-register test/index.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/brandonpayton/stream-dom.git"
+  },
+  "keywords": [
+    "babel",
+    "transform",
+    "stream-dom",
+    "jsx"
+  ],
+  "author": "Brandon Payton <brandon@happycode.net>",
+  "license": "MIT",
+  "dependencies": {
+    "babel-plugin-syntax-jsx": "^6.8.0",
+    "babel-runtime": "^6.11.6"
+  },
+  "devDependencies": {
+    "babel-register": "^6.11.6",
+    "chai": "^3.5.0",
+    "esprima": "^2.7.2",
+    "mocha": "^3.0.0"
+  },
+  "bugs": {
+    "url": "https://github.com/brandonpayton/stream-dom/issues"
+  },
+  "homepage": "https://github.com/brandonpayton/stream-dom#readme"
+}

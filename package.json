@@ -1,0 +1,22 @@
+{
+  "private": true,
+  "name": "stream-dom-mono-repo",
+  "version": "0.0.0",
+  "author": "Brandon Payton <brandon@happycode.net>",
+  "license": "MIT",
+  "scripts": {
+    "postinstall": "lerna bootstrap",
+    "test": "lerna run test",
+    "publish": "lerna publish"
+  },
+  "devDependencies": {
+    "babel-preset-es2015": "^6.9.0",
+    "babel-preset-es2016": "^6.11.0",
+    "eslint": "^3.0.0",
+    "lerna": "2.0.0-beta.24"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/brandonpayton/stream-dom.git"
+  }
+}
