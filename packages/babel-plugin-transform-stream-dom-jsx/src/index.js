@@ -9,6 +9,7 @@ export default function ({ types }) {
   // TODO: Support namespaced DOM elements and attributes
   // TODO: Support spread attributes
   // TODO: Support spread children
+  // TODO: Support configurable event and property namespaces
 
   return {
     inherits: require('babel-plugin-syntax-jsx'),
