@@ -6,7 +6,8 @@
   "license": "MIT",
   "scripts": {
     "postinstall": "lerna bootstrap",
-    "test": "lerna run test"
+    "test": "lerna run test",
+    "publish": "lerna publish"
   },
   "devDependencies": {
     "babel-preset-es2015": "^6.9.0",

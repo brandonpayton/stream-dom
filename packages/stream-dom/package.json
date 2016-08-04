@@ -2,7 +2,10 @@
   "name": "stream-dom",
   "version": "0.0.0",
   "description": "Reactive UI construction with simplicity and minimal magic",
-  "main": "src/index.js",
+  "main": "lib/index.js",
+  "files": [
+    "lib"
+  ],
   "directories": {
     "test": "test"
   },
