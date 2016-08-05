@@ -5,6 +5,7 @@ module.exports = function(config) {
     singleRun: true,
 
     files: [
+      './node_modules/babel-polyfill/browser.js',
       'test/index.js',
       'test/eventing.js'
     ],
@@ -52,9 +53,10 @@ module.exports = function(config) {
       require('karma-sourcemap-loader'),
       require('karma-mocha'),
       require('karma-chrome-launcher'),
+      require('karma-firefox-launcher'),
       require('karma-spec-reporter')
     ],
 
-    browsers: [ 'Chrome' ]
+    browsers: [ 'Chrome', 'Firefox' ]
   })
 }
