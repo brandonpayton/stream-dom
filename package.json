@@ -7,13 +7,15 @@
   "scripts": {
     "postinstall": "lerna bootstrap",
     "test": "lerna run test",
+    "prepublish": "lerna run test",
     "publish": "lerna publish"
   },
   "devDependencies": {
     "babel-preset-es2015": "^6.9.0",
     "babel-preset-es2016": "^6.11.0",
     "eslint": "^3.0.0",
-    "lerna": "2.0.0-beta.24"
+    "lerna": "2.0.0-beta.24",
+    "rimraf": "^2.5.4"
   },
   "repository": {
     "type": "git",

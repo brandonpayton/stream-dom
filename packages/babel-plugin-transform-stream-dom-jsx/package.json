@@ -10,6 +10,10 @@
     "test": "test"
   },
   "scripts": {
+    "clean": "rimraf lib",
+    "prebuild": "npm run clean",
+    "build": "babel src -d lib",
+    "pretest": "npm run build",
     "test": "mocha --ui tdd --compilers js:babel-register test/index.js"
   },
   "repository": {

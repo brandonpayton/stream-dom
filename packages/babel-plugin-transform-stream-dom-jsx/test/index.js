@@ -5,7 +5,7 @@ import {transform} from 'babel-core'
 import esprima from 'esprima'
 import {assert} from 'chai'
 
-import streamDomTransform from '../src/index'
+import streamDomTransform from '../lib/index'
 
 suite('babel-plugin-transform-stream-dom-jsx', function () {
   const fixturesPath = path.join(__dirname, 'fixtures')
