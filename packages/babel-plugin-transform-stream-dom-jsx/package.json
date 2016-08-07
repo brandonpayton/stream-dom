@@ -2,7 +2,7 @@
   "name": "babel-plugin-transform-stream-dom-jsx",
   "version": "0.1.2",
   "description": "Transform JSX into stream-dom function calls",
-  "main": "src/index.js",
+  "main": "lib/index.js",
   "files": [
     "lib"
   ],
