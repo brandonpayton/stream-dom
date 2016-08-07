@@ -4,7 +4,7 @@
   "description": "Transform JSX into stream-dom function calls",
   "main": "src/index.js",
   "files": [
-    "src"
+    "lib"
   ],
   "directories": {
     "test": "test"
