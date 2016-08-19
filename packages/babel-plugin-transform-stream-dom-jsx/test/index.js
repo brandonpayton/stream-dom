@@ -8,17 +8,36 @@ import {assert} from 'chai'
 // Use package root so package.json `main` is tested
 import streamDomTransform from '..'
 
+function getPluginOptions(basePath) {
+  try {
+    return JSON.parse(fs.readFileSync(path.join(basePath, 'options.json')))
+  }
+  catch (err) {
+    if (err.code === 'ENOENT') {
+      return {}
+    }
+    else {
+      throw err
+    }
+  }
+}
+
 suite('babel-plugin-transform-stream-dom-jsx', function () {
   const fixturesPath = path.join(__dirname, 'fixtures')
 
   const testTransform = entry => {
     const readOptions = { encoding: 'utf8' }
     const rawInput = fs.readFileSync(path.join(entry.path, 'actual.js'), readOptions)
+    const pluginOptions = getPluginOptions(entry.path)
     const expectedOutputAst = astForCompare(
       fs.readFileSync(path.join(entry.path, 'expected.js'), readOptions)
     )
     const actualOutputAst = astForCompare(
-      transform(rawInput, { plugins: [ streamDomTransform ] }).code
+      transform(rawInput, {
+        plugins: [
+          [ streamDomTransform, pluginOptions ]
+        ]
+      }).code
     )
 
     assert.deepEqual(actualOutputAst, expectedOutputAst)
