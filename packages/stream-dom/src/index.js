@@ -1,14 +1,16 @@
 import globalDocument from 'global/document'
 import {domEvent} from '@most/dom-event'
 import hold from '@most/hold'
-import {subject} from 'most-subject'
+import {merge} from 'most'
 
 import {createEventStream, attachEventStream} from './eventing'
 import is from './is'
 
 export class StreamDom {
-  constructor({document = globalDocument} = {}) {
+  constructor({ document = globalDocument, namespaceMap = {} } = {}) {
     this.document = document
+    this.namespaceMap = namespaceMap
+
     const sharedRange = this.sharedRange = document.createRange()
 
     class DomNodeDescriptor {
@@ -63,6 +65,7 @@ export class StreamDom {
 
   mount(streamDomNodeInit, domParentNode, domBeforeNode = null) {
     const mountedProxy$ = createEventStream()
+    // TODO: End mounted$ when destroy$ emits an event
     const mounted$ = mountedProxy$.thru(hold)
     const destroyProxy$ = createEventStream()
     const destroy$ = destroyProxy$.multicast()
@@ -92,8 +95,17 @@ export class StreamDom {
     return () => new this.TextNodeDescriptor(this.document.createTextNode(str))
   }
 
-  element(name, {attributes = {}, properties = {}, eventStreams = {}, children = []} = {}) {
-    const domNode = this.document.createElement(name)
+  element(name, {
+    namespaceName = null,
+    attributes = {},
+    properties = {},
+    eventStreams = {},
+    children = []
+  } = {}) {
+    const { document, namespaceMap } = this
+    const domNode = namespaceName
+      ? document.createElementNS(namespaceMap[namespaceName], name)
+      : document.createElement(name)
 
     return ({ mounted$, destroy$ }) => {
       const apply = (hash, applicator) => {
@@ -132,8 +144,7 @@ export class StreamDom {
       for (const name in eventStreams) {
         const proxy$ = eventStreams[name]
 
-        // NOTE: This is probably too magical. Revisit.
-        if (name === 'mount' || name === 'destroy') {
+        if (name === 'mount') {
           attachEventStream(proxy$, mounted$.map(() => ({ target: domNode })))
         }
         else if (name === 'destroy') {
@@ -145,11 +156,10 @@ export class StreamDom {
       }
 
       const fragment = document.createDocumentFragment()
-      const childDescriptors = children.map(childInit => {
-        const childDescriptor = childInit({ mounted$, destroy$ })
-        childDescriptor.insert(fragment)
-        return childDescriptor
-      })
+
+      const childDescriptors = initializeChildren({ children, mounted$, destroy$ })
+      childDescriptors.forEach(cd => cd.insert(fragment))
+
       domNode.appendChild(fragment)
 
       return new this.ElementNodeDescriptor({ domNode, childDescriptors, mounted$, destroy$ })
@@ -161,37 +171,23 @@ export class StreamDom {
       const domStartNode = this.document.createComment('')
       const domEndNode = this.document.createComment('')
 
-      const mountedGate$ = subject()
-      const localDestroy$ = subject()
-
-      const childMount$ = mountedGate$.chain(() => mounted$)
-      const childDestroy$ = localDestroy$.merge(destroy$)
-
-      // TODO: Rework this to remove need for subjects
       const childDescriptors$ = children$
         .until(destroy$)
-        .loop((dispose, children) => {
-          dispose()
-
-          return {
-            seed: () => localDestroy$.next(),
-            value: children.map(childInit => childInit({
-              mounted$: childMount$,
-              destroy$: childDestroy$.take(1)
-            }))
-          }
-        }, () => {})
+        .map(children => initializeChildren({
+          children,
+          mounted$,
+          destroy$: merge(children$, destroy$).take(1)
+        }))
         .tap(childDescriptors => {
           const {document, sharedRange} = this
-          sharedRange.setStartAfter(domStartNode)
-          sharedRange.setEndBefore(domEndNode)
-          sharedRange.deleteContents()
 
           const fragment = document.createDocumentFragment()
           childDescriptors.forEach(childDescriptor => childDescriptor.insert(fragment))
-          sharedRange.insertNode(fragment)
 
-          mountedGate$.next()
+          sharedRange.setStartAfter(domStartNode)
+          sharedRange.setEndBefore(domEndNode)
+          sharedRange.deleteContents()
+          sharedRange.insertNode(fragment)
         })
 
       childDescriptors$.drain()
@@ -201,26 +197,37 @@ export class StreamDom {
   }
 
   component(ComponentFactory, { properties = {}, eventStreams = {}, children } = {}) {
-    const localDestroy$ = subject()
-
-    const componentInit = ComponentFactory({ properties, eventStreams, children, createEventStream })
-
-    return ({ mounted$, destroy$ }) => {
-      destroy$
-        .take(1)
-        .until(localDestroy$)
-        .observe(() => localDestroy$.next())
-
-      localDestroy$.observe(() => localDestroy$.complete())
-
-      return componentInit({ mounted$, destroy$: localDestroy$ })
-    }
+    return ComponentFactory({ properties, eventStreams, children, createEventStream })
   }
 
   expression(value) {
-    return is.stream(value) ? stream(value) : text(value)
+    return (
+      is.stream(value) ? stream(value) :
+      is.array(value) ? value.map(c => this.expression(c)) :
+      is.function(value) ? value :
+      text(value)
+    )
   }
 }
+
+function initializeChildren({ children, mounted$, destroy$ }) {
+  function reduceChildren(descriptors, childInitOrArray) {
+    if (is.array(childInitOrArray)) {
+      childInitOrArray.reduce(reduceChildren, descriptors)
+    }
+    else if (is.function(childInitOrArray)) {
+      descriptors.push(childInitOrArray({ mounted$, destroy$ }))
+    }
+    else {
+      throw new Error('Unexpected child type', childInitOrArray)
+    }
+
+    return descriptors
+  }
+
+  return children.reduce(reduceChildren, [])
+}
+
 
 const streamDom = new StreamDom()
 
