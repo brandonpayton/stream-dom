@@ -2,3 +2,6 @@
 .vscode
 node_modules
 lib
+
+npm-debug.log.*
+lerna-debug.log
