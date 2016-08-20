@@ -1,3 +1,5 @@
+import esutils from 'esutils'
+
 export default function ({ types }) {
   const t = types
 
@@ -183,8 +185,14 @@ export default function ({ types }) {
       )
     }
 
-    function objectProperty(name, value) {
-      return t.objectProperty(t.identifier(name), value)
+    function objectProperty(key, value) {
+      return t.objectProperty(toObjectKeyType(key), value)
+    }
+
+    function toObjectKeyType(key) {
+      return esutils.keyword.isIdentifierNameES6(key)
+        ? t.identifier(key)
+        : t.stringLiteral(key)
     }
   }
 }

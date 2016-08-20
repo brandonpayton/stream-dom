@@ -30,7 +30,8 @@
   "license": "MIT",
   "dependencies": {
     "babel-plugin-syntax-jsx": "^6.8.0",
-    "babel-runtime": "^6.11.6"
+    "babel-runtime": "^6.11.6",
+    "esutils": "^2.0.2"
   },
   "devDependencies": {
     "babel-register": "^6.11.6",
