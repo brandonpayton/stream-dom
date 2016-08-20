@@ -1,14 +1,13 @@
 export default function ({ types }) {
   const t = types
 
-  // TODO: Explicitly error on member expressions until they're supported
   // TODO: Explicitly error on namespaced things until they're supported
-  // TODO: Support member expressions
   // TODO: Support namespaced DOM elements and attributes
   // TODO: Support spread attributes
   // TODO: Support spread children
-  // TODO: Support configurable event and property namespaces
   // TODO: Fix Babylon allowing namespaced member expression
+
+  // TODO: Clean this up
 
   return {
     inherits: require('babel-plugin-syntax-jsx'),
@@ -29,7 +28,7 @@ export default function ({ types }) {
     path.replaceWith(isComponentName(node.openingElement.name) ? toComponent(node) : toDomElement(node))
 
     function toDomElement({
-      openingElement: { attributes: jsxAttributes, name: { name } },
+      openingElement: { attributes: jsxAttributes, name },
       children
     }) {
       // TODO: Support JSXSpreadAttribute
@@ -61,18 +60,27 @@ export default function ({ types }) {
         { attributes: [], namespacedAttributes: [], properties: [], eventStreams: [] }
       )
 
-      return streamDomCallExpression(
-        'element',
-        [
-          t.stringLiteral(name),
-          t.objectExpression([
-            objectProperty('attributes', t.objectExpression(config.attributes)),
-            objectProperty('properties', t.objectExpression(config.properties)),
-            objectProperty('eventStreams', t.objectExpression(config.eventStreams)),
-            objectProperty('children', mapChildren(children))
-          ])
-        ]
+      const [ elementName, namespaceName ] = isNamespacedName(name)
+        ? [ name.name.name, name.namespace.name ]
+        : [ name.name, undefined ]
+
+      const objectProperties = []
+
+      if (namespaceName !== undefined) {
+        objectProperties.push(objectProperty('namespaceName', t.stringLiteral(namespaceName)))
+      }
+
+      objectProperties.push(
+        objectProperty('attributes', t.objectExpression(config.attributes)),
+        objectProperty('properties', t.objectExpression(config.properties)),
+        objectProperty('eventStreams', t.objectExpression(config.eventStreams)),
+        objectProperty('children', mapChildren(children))
       )
+
+      return streamDomCallExpression('element', [
+        t.stringLiteral(elementName),
+        t.objectExpression(objectProperties)
+      ])
     }
 
     function toComponent({
@@ -136,7 +144,9 @@ export default function ({ types }) {
     }
 
     function isComponentName(name) {
-      return isJsxMemberExpression(name) || (isJsxIdentifier(name) && /^[A-Z]/.test(name.name))
+      return !isNamespacedName(name) && (
+        isJsxMemberExpression(name) || (isJsxIdentifier(name) && /^[A-Z]/.test(name.name))
+      )
     }
 
     function toMemberExpression({ object, property }) {
