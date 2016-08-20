@@ -6,8 +6,13 @@ import {merge} from 'most'
 import {createEventStream, attachEventStream} from './eventing'
 import is from './is'
 
-export class StreamDom {
-  constructor({ document = globalDocument, namespaceMap = {} } = {}) {
+class StreamDom {
+  constructor({
+    document = globalDocument,
+    eventListenerNamespace = 'event',
+    propertyNamespace = 'property',
+    namespaceMap = {}
+  } = {}) {
     this.document = document
     this.namespaceMap = namespaceMap
 
@@ -63,6 +68,15 @@ export class StreamDom {
     }
   }
 
+  getNamespaceURI(namespaceName) {
+    if (namespaceName in this.namespaceMap) {
+      return this.namespaceMap[namespaceName]
+    }
+    else {
+      throw new Error(`No namespace URI found for namespace name '${namespaceName}'`)
+    }
+  }
+
   mount(streamDomNodeInit, domParentNode, domBeforeNode = null) {
     const mountedProxy$ = createEventStream()
     // TODO: End mounted$ when destroy$ emits an event
@@ -102,9 +116,9 @@ export class StreamDom {
     eventStreams = {},
     children = []
   } = {}) {
-    const { document, namespaceMap } = this
+    const { document } = this
     const domNode = namespaceName
-      ? document.createElementNS(namespaceMap[namespaceName], name)
+      ? document.createElementNS(this.getNamespaceURI(namespaceName), name)
       : document.createElement(name)
 
     return ({ mounted$, destroy$ }) => {
@@ -228,8 +242,11 @@ function initializeChildren({ children, mounted$, destroy$ }) {
   return children.reduce(reduceChildren, [])
 }
 
+export function configureStreamDom(...config) {
+  return new StreamDom(...config)
+}
 
-const streamDom = new StreamDom()
+const streamDom = configureStreamDom()
 
 export default streamDom
 

@@ -6,9 +6,13 @@ export default {
     assert.strictEqual(domNode.textContent, expectedText, 'correct contents')
   },
 
-  elementNode(domNode, expectedTagName) {
+  elementNode(domNode, expectedTagName, expectedNamespaceURI) {
     assert.strictEqual(domNode.nodeType, Node.ELEMENT_NODE, 'correct DOM node type')
-    assert.strictEqual(domNode.tagName, expectedTagName.toUpperCase(), 'correct element name')
+    assert.match(domNode.tagName, new RegExp(expectedTagName, 'i'), 'correct element name')
+
+    if (expectedNamespaceURI !== undefined) {
+      assert.strictEqual(domNode.namespaceURI, expectedNamespaceURI, 'correct namespace URI')
+    }
   },
 
   elementAttributes(domElement, expectedAttributes, customComment) {

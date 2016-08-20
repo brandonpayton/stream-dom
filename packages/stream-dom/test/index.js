@@ -1,4 +1,4 @@
-import {mount, element, text, stream, component} from 'stream-dom'
+import {configureStreamDom, mount, element, text, stream, component} from 'stream-dom'
 import {createEventStream} from 'stream-dom/eventing'
 import domAssert from './domAssert'
 import {assert} from 'chai'
@@ -20,6 +20,19 @@ describe('stream-dom nodes', function () {
       const {domNode} = element(expectedTagName)({ mounted$, destroy$ })
 
       domAssert.elementNode(domNode, expectedTagName)
+    })
+
+    it('creates a namespaced element', function () {
+      const expectedTagName = 'svg'
+      const expectedNamespaceURI = 'http://www.w3.org/2000/svg'
+      const streamDom = configureStreamDom({
+        namespaceMap: {
+          svg: expectedNamespaceURI
+        }
+      })
+      const {domNode} = streamDom.element(expectedTagName, { namespaceName: 'svg' })({ mounted$, destroy$ })
+
+      domAssert.elementNode(domNode, expectedTagName, expectedNamespaceURI)
     })
 
     it('creates an element with static attributes', function () {
