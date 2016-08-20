@@ -1,4 +1,4 @@
-import {configureStreamDom, mount, element, text, stream, component} from 'stream-dom'
+import streamDom, {configureStreamDom, mount, element, text, stream, component} from 'stream-dom'
 import {createEventStream} from 'stream-dom/eventing'
 import domAssert from './domAssert'
 import {assert} from 'chai'
@@ -16,23 +16,52 @@ describe('stream-dom nodes', function () {
   afterEach(() => destroy$.next())
   describe('elements', function () {
     it('creates an element', function () {
-      const expectedTagName = 'div'
-      const {domNode} = element(expectedTagName)({ mounted$, destroy$ })
+      const {domNode} = element('div')({ mounted$, destroy$ })
+      domAssert.elementNode(domNode, 'div')
+    })
 
-      domAssert.elementNode(domNode, expectedTagName)
+    it('defaults to xhtml namespace URI', function () {
+      const {domNode} = element('div')({ mounted$, destroy$ })
+      domAssert.elementNode(domNode, 'div', streamDom.namespaceMap.html)
     })
 
     it('creates a namespaced element', function () {
-      const expectedTagName = 'svg'
-      const expectedNamespaceURI = 'http://www.w3.org/2000/svg'
-      const streamDom = configureStreamDom({
-        namespaceMap: {
-          svg: expectedNamespaceURI
-        }
-      })
-      const {domNode} = streamDom.element(expectedTagName, { namespaceName: 'svg' })({ mounted$, destroy$ })
+      const svgNamespaceUri = streamDom.namespaceMap.svg
+      const {domNode} = streamDom.element('svg', { namespaceName: 'svg' })({ mounted$, destroy$ })
 
-      domAssert.elementNode(domNode, expectedTagName, expectedNamespaceURI)
+      domAssert.elementNode(domNode, 'svg', svgNamespaceUri)
+    })
+
+    it('defaults child elements to namespace URI of parent', function () {
+      const svgNamespaceUri = streamDom.namespaceMap.svg
+
+      const {domNode} = element('svg', {
+        namespaceName: 'svg',
+        children: [ element('g') ]
+      })({ mounted$, destroy$ })
+
+      domAssert.elementNode(domNode, 'svg', svgNamespaceUri)
+      domAssert.elementNode(domNode.firstElementChild, 'g', svgNamespaceUri)
+    })
+
+    it('allows children to override namespace URI of parent', function () {
+      const svgNamespaceUri = streamDom.namespaceMap.svg
+      const htmlNamespaceUri = streamDom.namespaceMap.html
+
+      const {domNode} = element('svg', {
+        namespaceName: 'svg',
+        children: [
+          element('foreignObject', {
+            children: [
+              element('div', { namespaceName: 'html' })
+            ]
+          })
+        ]
+      })({ mounted$, destroy$ })
+
+      domAssert.elementNode(domNode, 'svg', svgNamespaceUri)
+      domAssert.elementNode(domNode.firstElementChild, 'foreignObject', svgNamespaceUri)
+      domAssert.elementNode(domNode.firstElementChild.firstElementChild, 'div', htmlNamespaceUri)
     })
 
     it('creates an element with static attributes', function () {

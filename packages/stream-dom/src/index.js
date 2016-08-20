@@ -6,12 +6,17 @@ import {merge} from 'most'
 import {createEventStream, attachEventStream} from './eventing'
 import is from './is'
 
+const defaultNamespaceMap = {
+  html: 'http://www.w3.org/1999/xhtml',
+  svg: 'http://www.w3.org/2000/svg'
+}
+
 class StreamDom {
   constructor({
     document = globalDocument,
     eventListenerNamespace = 'event',
     propertyNamespace = 'property',
-    namespaceMap = {}
+    namespaceMap = defaultNamespaceMap
   } = {}) {
     this.document = document
     this.namespaceMap = namespaceMap
@@ -68,13 +73,17 @@ class StreamDom {
     }
   }
 
-  getNamespaceURI(namespaceName) {
+  getNamespaceUri(namespaceName) {
     if (namespaceName in this.namespaceMap) {
       return this.namespaceMap[namespaceName]
     }
     else {
       throw new Error(`No namespace URI found for namespace name '${namespaceName}'`)
     }
+  }
+
+  getDefaultNamespaceUri() {
+    return this.getNamespaceUri('html')
   }
 
   mount(streamDomNodeInit, domParentNode, domBeforeNode = null) {
@@ -116,12 +125,11 @@ class StreamDom {
     eventStreams = {},
     children = []
   } = {}) {
-    const { document } = this
-    const domNode = namespaceName
-      ? document.createElementNS(this.getNamespaceURI(namespaceName), name)
-      : document.createElement(name)
+    return ({ mounted$, destroy$, parentNamespaceUri = this.getDefaultNamespaceUri() }) => {
+      const { document } = this
+      const namespaceUri = namespaceName ? this.getNamespaceUri(namespaceName) : parentNamespaceUri
+      const domNode = document.createElementNS(namespaceUri, name)
 
-    return ({ mounted$, destroy$ }) => {
       const apply = (hash, applicator) => {
         for (const name in hash) {
           const value = hash[name]
@@ -171,7 +179,7 @@ class StreamDom {
 
       const fragment = document.createDocumentFragment()
 
-      const childDescriptors = initializeChildren({ children, mounted$, destroy$ })
+      const childDescriptors = initializeChildren({ children, mounted$, destroy$, parentNamespaceUri: namespaceUri })
       childDescriptors.forEach(cd => cd.insert(fragment))
 
       domNode.appendChild(fragment)
@@ -181,7 +189,7 @@ class StreamDom {
   }
 
   stream(children$) {
-    return ({ mounted$, destroy$ }) => {
+    return ({ mounted$, destroy$, parentNamespaceUri }) => {
       const domStartNode = this.document.createComment('')
       const domEndNode = this.document.createComment('')
 
@@ -190,7 +198,8 @@ class StreamDom {
         .map(children => initializeChildren({
           children,
           mounted$,
-          destroy$: merge(children$, destroy$).take(1)
+          destroy$: merge(children$, destroy$).take(1),
+          parentNamespaceUri
         }))
         .tap(childDescriptors => {
           const {document, sharedRange} = this
@@ -224,13 +233,13 @@ class StreamDom {
   }
 }
 
-function initializeChildren({ children, mounted$, destroy$ }) {
+function initializeChildren({ children, mounted$, destroy$, parentNamespaceUri }) {
   function reduceChildren(descriptors, childInitOrArray) {
     if (is.array(childInitOrArray)) {
       childInitOrArray.reduce(reduceChildren, descriptors)
     }
     else if (is.function(childInitOrArray)) {
-      descriptors.push(childInitOrArray({ mounted$, destroy$ }))
+      descriptors.push(childInitOrArray({ mounted$, destroy$, parentNamespaceUri }))
     }
     else {
       throw new Error('Unexpected child type', childInitOrArray)
