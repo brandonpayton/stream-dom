@@ -2,7 +2,7 @@ export default function ({ types }) {
   const t = types
 
   // TODO: Explicitly error on namespaced things until they're supported
-  // TODO: Support namespaced DOM elements and attributes
+  // TODO: Support namespaced attributes
   // TODO: Support spread attributes
   // TODO: Support spread children
   // TODO: Fix Babylon allowing namespaced member expression
