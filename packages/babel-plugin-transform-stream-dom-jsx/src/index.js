@@ -53,7 +53,12 @@ export default function ({ types }) {
           // TODO: Support or error on dot-delimited names
           else {
             config.attributes.push(
-              objectProperty(name.name, value.type === 'JSXExpressionContainer' ? value.expression : value)
+              objectProperty(
+                name.name,
+                value === null ? t.booleanLiteral(true) :
+                  value.type === 'JSXExpressionContainer' ? value.expression :
+                  value
+              )
             )
           }
 
