@@ -101,7 +101,6 @@ class StreamDom {
 
     nodeDescriptor.insert(domParentNode, domBeforeNode)
 
-    // TODO: IIRC, it is wrong to emit an event in the same call stack as observe(). Investigate.
     domNode.dispatchEvent(new CustomEvent('mount'))
 
     destroy$.observe(() => nodeDescriptor.remove())
