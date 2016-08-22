@@ -1,0 +1,22 @@
+{
+  "parserOptions": {
+    "ecmaVersion": 7,
+    "sourceType": "module",
+    "ecmaFeatures": {
+      "impliedStrict": true,
+      "jsx": true,
+      "experimentalObjectRestSpread": true
+    }
+  },
+
+  "env": {
+    "browser": true
+  },
+
+  "rules": {
+    "quotes": [ 2, "single", "avoid-escape" ],
+    "no-unused-vars": [ "error", { "varsIgnorePattern": "streamDom" } ],
+    "strict": [2, "never"],
+
+  }
+}
