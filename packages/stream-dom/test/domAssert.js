@@ -16,21 +16,20 @@ export default {
   },
 
   elementAttributes(domElement, expectedAttributes, customComment) {
-    const expectedNames = Object.keys(expectedAttributes)
     const comment = customComment || 'same number of actual and expected attributes'
 
-    assert.strictEqual(domElement.attributes.length, expectedNames.length, comment)
+    assert.strictEqual(domElement.attributes.length, expectedAttributes.length, comment)
 
-    expectedNames.forEach(name => {
+    expectedAttributes.forEach(({ name, value }) => {
       assert.isTrue(domElement.hasAttribute(name), 'attribute present')
-      assert.strictEqual(domElement.getAttribute(name), expectedAttributes[name], 'expected value')
+      assert.strictEqual(domElement.getAttribute(name), value, 'expected value')
     })
   },
 
   elementProperties(domElement, expectedProperties) {
-    const expectedNames = Object.keys(expectedProperties)
-
-    expectedNames.forEach(name => assert.propertyVal(domElement, name, expectedProperties[name]))
+    expectedProperties.forEach(
+      ({ name, value }) => assert.propertyVal(domElement, name, value)
+    )
   }
 }
 

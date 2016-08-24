@@ -1,4 +1,4 @@
-import streamDom, {configureStreamDom, mount, element, text, stream, component} from 'stream-dom'
+import streamDom from 'stream-dom'
 import {createEventStream} from 'stream-dom/eventing'
 import domAssert from './domAssert'
 import {assert} from 'chai'
@@ -8,6 +8,18 @@ import {subject} from 'most-subject'
 const slice = arrayLike => [].slice.apply(arrayLike)
 const toNodeArrayWithoutComments = nodeList => slice(nodeList).filter(node => node.nodeType !== Node.COMMENT_NODE)
 
+function config({ mounted$, destroy$ }) {
+  return {
+    document,
+    // TODO: What's the point of `getDefaultNamespaceUri`?
+    parentNamespaceUri: streamDom.getDefaultNamespaceUri(),
+    namespaceUriMap: streamDom.namespaceUriMap,
+    getNamespaceUri: namespaceName => streamDom.getNamespaceUri(namespaceName),
+    mounted$,
+    destroy$
+  }
+}
+
 describe('stream-dom nodes', function () {
 
   const mounted$ = subject()
@@ -16,48 +28,53 @@ describe('stream-dom nodes', function () {
   afterEach(() => destroy$.next())
   describe('elements', function () {
     it('creates an element', function () {
-      const {domNode} = element('div')({ mounted$, destroy$ })
+      const init = streamDom.element('div')
+      const {domNode} = init(config({ mounted$, destroy$ }))
       domAssert.elementNode(domNode, 'div')
     })
 
     it('defaults to xhtml namespace URI', function () {
-      const {domNode} = element('div')({ mounted$, destroy$ })
-      domAssert.elementNode(domNode, 'div', streamDom.namespaceMap.html)
+      const init = streamDom.element('div')
+      const {domNode} = init(config({ mounted$, destroy$ }))
+      domAssert.elementNode(domNode, 'div', streamDom.namespaceUriMap.html)
     })
 
     it('creates a namespaced element', function () {
-      const svgNamespaceUri = streamDom.namespaceMap.svg
-      const {domNode} = streamDom.element('svg', { namespaceName: 'svg' })({ mounted$, destroy$ })
+      const svgNamespaceUri = streamDom.namespaceUriMap.svg
+      const init = streamDom.element('svg', { namespaceName: 'svg' })
+      const {domNode} = init(config({ mounted$, destroy$ }))
 
       domAssert.elementNode(domNode, 'svg', svgNamespaceUri)
     })
 
     it('defaults child elements to namespace URI of parent', function () {
-      const svgNamespaceUri = streamDom.namespaceMap.svg
+      const svgNamespaceUri = streamDom.namespaceUriMap.svg
 
-      const {domNode} = element('svg', {
+      const init = streamDom.element('svg', {
         namespaceName: 'svg',
-        children: [ element('g') ]
-      })({ mounted$, destroy$ })
+        children: [ streamDom.element('g') ]
+      })
+      const {domNode} = init(config({ mounted$, destroy$ }))
 
       domAssert.elementNode(domNode, 'svg', svgNamespaceUri)
       domAssert.elementNode(domNode.firstElementChild, 'g', svgNamespaceUri)
     })
 
     it('allows children to override namespace URI of parent', function () {
-      const svgNamespaceUri = streamDom.namespaceMap.svg
-      const htmlNamespaceUri = streamDom.namespaceMap.html
+      const svgNamespaceUri = streamDom.namespaceUriMap.svg
+      const htmlNamespaceUri = streamDom.namespaceUriMap.html
 
-      const {domNode} = element('svg', {
+      const init = streamDom.element('svg', {
         namespaceName: 'svg',
         children: [
-          element('foreignObject', {
+          streamDom.element('foreignObject', {
             children: [
-              element('div', { namespaceName: 'html' })
+              streamDom.element('div', { namespaceName: 'html' })
             ]
           })
         ]
-      })({ mounted$, destroy$ })
+      })
+      const {domNode} = init(config({ mounted$, destroy$ }))
 
       domAssert.elementNode(domNode, 'svg', svgNamespaceUri)
       domAssert.elementNode(domNode.firstElementChild, 'foreignObject', svgNamespaceUri)
@@ -66,11 +83,12 @@ describe('stream-dom nodes', function () {
 
     it('creates an element with static attributes', function () {
       const expectedTagName = 'div'
-      const expectedAttributes = {
-        id: 'someId',
-        class: 'someClass'
-      }
-      const {domNode} = element(expectedTagName, { attributes: expectedAttributes })({ mounted$, destroy$ })
+      const expectedAttributes = [
+        { name: 'id', value: 'someId' },
+        { name: 'class', value: 'someClass' }
+      ]
+      const init = streamDom.element(expectedTagName, { attributes: expectedAttributes })
+      const {domNode} = init(config({ mounted$, destroy$ }))
 
       domAssert.elementNode(domNode, expectedTagName)
       domAssert.elementAttributes(domNode, expectedAttributes)
@@ -78,11 +96,12 @@ describe('stream-dom nodes', function () {
 
     it('creates an element with static properties', function () {
       const expectedTagName = 'div'
-      const expectedProperties = {
-        id: 'someId',
-        className: 'someClass'
-      }
-      const {domNode} = element(expectedTagName, { properties: expectedProperties })({ mounted$, destroy$ })
+      const expectedProperties = [
+        { namespace: 'property', name: 'id', value: 'someId' },
+        { namespace: 'property', name: 'className', value: 'someClass' }
+      ]
+      const init = streamDom.element(expectedTagName, { attributes: expectedProperties })
+      const {domNode} = init(config({ mounted$, destroy$ }))
 
       domAssert.elementNode(domNode, expectedTagName)
       domAssert.elementProperties(domNode, expectedProperties)
@@ -90,17 +109,18 @@ describe('stream-dom nodes', function () {
 
     it('creates an element with static attributes and properties', function () {
       const expectedTagName = 'div'
-      const expectedAttributes = {
-        id: 'someId',
-        class: 'someClass'
-      }
-      const expectedProperties = {
-        className: 'someClass'
-      }
-      const {domNode} = element(expectedTagName, {
-        attributes: expectedAttributes,
-        properties: expectedProperties
-      })({ mounted$, destroy$ })
+      const expected = [
+        { name: 'id', value: 'someId' },
+        { name: 'class', value: 'someClass' },
+        { namespace: 'property', name: 'className', value: 'someClass' }
+      ]
+      const expectedAttributes = expected.filter(descriptor => !descriptor.namespace)
+      const expectedProperties = expected.filter(descriptor => !!descriptor.namespace)
+
+      const init = streamDom.element(expectedTagName, {
+        attributes: expected,
+      })
+      const {domNode} = init(config({ mounted$, destroy$ }))
 
       domAssert.elementNode(domNode, expectedTagName)
       domAssert.elementAttributes(domNode, expectedAttributes)
@@ -112,12 +132,14 @@ describe('stream-dom nodes', function () {
       const classSubject = subject()
       const ariaLabelSubject = subject()
 
-      const {domNode} = element(expectedTagName, {
-        attributes: {
-          class: classSubject,
-          'aria-label': ariaLabelSubject
-        }
-      })({ mounted$, destroy$ })
+      const init = streamDom.element(expectedTagName, {
+        attributes: [
+          { name: 'class', value: classSubject },
+          { name: 'aria-label', value: ariaLabelSubject }
+        ]
+      })
+      const {domNode} = init(config({ mounted$, destroy$ }))
+
       domAssert.elementNode(domNode, expectedTagName)
 
       Promise.all([
@@ -150,12 +172,13 @@ describe('stream-dom nodes', function () {
       const classSubject = subject()
       const valueSubject = subject()
 
-      const {domNode} = element(expectedTagName, {
-        properties: {
-          value: valueSubject,
-          className: classSubject
-        }
-      })({ mounted$, destroy$ })
+      const init = streamDom.element(expectedTagName, {
+        attributes: [
+          { namespace: 'property', name: 'value', value: valueSubject },
+          { namespace: 'property', name: 'className', value: classSubject }
+        ]
+      })
+      const {domNode} = init(config({ mounted$, destroy$ }))
       domAssert.elementNode(domNode, expectedTagName)
 
       Promise.all([
@@ -190,16 +213,15 @@ describe('stream-dom nodes', function () {
       const expectedTitleProperty = 'test node'
       const valueSubject = subject()
 
-      const {domNode} = element(expectedTagName, {
-        attributes: {
-          type: expectedTypeAttribute,
-          class: classSubject
-        },
-        properties: {
-          title: expectedTitleProperty,
-          value: valueSubject
-        }
-      })({ mounted$, destroy$ })
+      const init = streamDom.element(expectedTagName, {
+        attributes: [
+          { name: 'type', value: expectedTypeAttribute },
+          { name: 'class', value: classSubject },
+          { namespace: 'property', name: 'title', value: expectedTitleProperty },
+          { namespace: 'property', name: 'value', value: valueSubject }
+        ]
+      })
+      const {domNode} = init(config({ mounted$, destroy$ }))
       domAssert.elementNode(domNode, expectedTagName)
 
       Promise.all([
@@ -229,15 +251,39 @@ describe('stream-dom nodes', function () {
       valueSubject.complete()
     }),
 
+    it('handles spread attributes', function () {
+      const expectedTagName = 'div'
+      const expected = [
+        [
+          { name: 'id', value: 'someId' },
+          { name: 'class', value: 'someClass' },
+          { namespace: 'property', name: 'className', value: 'someClass' }
+        ]
+      ]
+      const expectedAttributes = expected[0].filter(descriptor => !descriptor.namespace)
+      const expectedProperties = expected[0].filter(descriptor => !!descriptor.namespace)
+
+      const init = streamDom.element(expectedTagName, {
+        attributes: expected,
+      })
+      const {domNode} = init(config({ mounted$, destroy$ }))
+
+      domAssert.elementNode(domNode, expectedTagName)
+      domAssert.elementAttributes(domNode, expectedAttributes)
+      domAssert.elementProperties(domNode, expectedProperties)
+    })
+
     // TODO: Test using event subjects in until()
     it('creates an element with event streams', function () {
       const expectedElementName = 'div'
       const click$ = createEventStream()
-      const streamDomNodeInit = element(expectedElementName, {
-        eventStreams: { click: click$ }
+      const streamDomNodeInit = streamDom.element(expectedElementName, {
+        attributes: [
+          { namespace: 'event', name: 'click', value: click$ }
+        ]
       })
 
-      const mountInfo = mount(streamDomNodeInit, document.body)
+      const mountInfo = streamDom.mount(streamDomNodeInit, document.body)
 
       const promiseToReduce = click$.reduce(
         (eventTypes, event) => {
@@ -268,17 +314,18 @@ describe('stream-dom nodes', function () {
       const expectedChildName2 = 'ol'
       const expectedGrandChildName = 'li'
 
-      const {domNode} = element(expectedParentName, {
+      const init = streamDom.element(expectedParentName, {
         children: [
-          element(expectedChildName0),
-          element(expectedChildName1, { children: [ text(expectedChildContent) ] }),
-          element(expectedChildName2, {
+          streamDom.element(expectedChildName0),
+          streamDom.element(expectedChildName1, { children: [ streamDom.text(expectedChildContent) ] }),
+          streamDom.element(expectedChildName2, {
             children: [
-              element(expectedGrandChildName)
+              streamDom.element(expectedGrandChildName)
             ]
           })
         ]
-      })({ mounted$, destroy$ })
+      })
+      const {domNode} = init(config({ mounted$, destroy$ }))
 
       domAssert.elementNode(domNode, expectedParentName)
       domAssert.elementNode(domNode.childNodes[0], expectedChildName0)
@@ -292,9 +339,10 @@ describe('stream-dom nodes', function () {
       const expectedTagName = 'div'
       const children$ = subject()
 
-      const elementDescriptor = element(expectedTagName, {
-        children: [ stream(children$) ]
-      })({ mounted$, destroy$ })
+      const init = streamDom.element(expectedTagName, {
+        children: [ streamDom.stream(children$) ]
+      })
+      const elementDescriptor = init(config({ mounted$, destroy$ }))
 
       const {domNode} = elementDescriptor
       const streamChildDescriptor = elementDescriptor.childDescriptors[0]
@@ -317,6 +365,7 @@ describe('stream-dom nodes', function () {
 
       domAssert.elementNode(domNode, expectedTagName)
 
+      // TODO: FIX: Finish this test
       const expectedChildrenNames = [
         [ 'p', 'span', 'div' ],
         [ 'span', 'div', 'p' ],
@@ -325,7 +374,7 @@ describe('stream-dom nodes', function () {
 
       expectedChildrenNames.forEach(childrenNames => {
         children$.next(
-          childrenNames.map(name => element(name))
+          childrenNames.map(name => streamDom.element(name))
         )
       })
       children$.complete()
@@ -345,13 +394,14 @@ describe('stream-dom nodes', function () {
       )
       const streamedChildren$ = subject()
 
-      const elementDescriptor = element(expectedTagName, {
+      const init = streamDom.element(expectedTagName, {
         children: [
-          element(expectedFirstChildTagName),
-          stream(streamedChildren$),
-          element(expectedLastChildTagName)
+          streamDom.element(expectedFirstChildTagName),
+          streamDom.stream(streamedChildren$),
+          streamDom.element(expectedLastChildTagName)
         ]
-      })({ mounted$, destroy$ })
+      })
+      const elementDescriptor = init(config({ mounted$, destroy$ }))
       const {domNode} = elementDescriptor
 
       domAssert.elementNode(domNode, expectedTagName)
@@ -379,7 +429,7 @@ describe('stream-dom nodes', function () {
 
       expectedStreamedChildrenNames.forEach(childrenNames => {
         streamedChildren$.next(
-          childrenNames.map(name => element(name))
+          childrenNames.map(name => streamDom.element(name))
         )
       })
       streamedChildren$.complete()
@@ -412,10 +462,11 @@ describe('stream-dom nodes', function () {
     it('creates an element encapsulated by a component factory function', function () {
       const expectedTagName = 'article'
       function TestComponent() {
-        return element(expectedTagName)
+        return streamDom.element(expectedTagName)
       }
 
-      const descriptor = component(TestComponent)({ mounted$, destroy$ })
+      const init = streamDom.component(TestComponent)
+      const descriptor = init(config({ mounted$, destroy$ }))
       assert.property(descriptor, 'domNode')
       assert.strictEqual(descriptor.domNode.tagName.toLowerCase(), expectedTagName)
     })
@@ -433,9 +484,9 @@ describe('mount', function () {
 
   it('inserts and removes an element from the DOM', function () {
     const expectedTagName = 'section'
-    const streamDomNodeInit = element(expectedTagName)
+    const streamDomNodeInit = streamDom.element(expectedTagName)
 
-    const mountInfo = mount(streamDomNodeInit, testContainerNode)
+    const mountInfo = streamDom.mount(streamDomNodeInit, testContainerNode)
     const {domNode} = mountInfo.nodeDescriptor
 
     assert.strictEqual(domNode.tagName.toLowerCase(), expectedTagName, 'confirm an assumption')
@@ -447,7 +498,7 @@ describe('mount', function () {
   })
 
   it('notifies an element when it is mounted and when it is diposed', () => {
-    const streamDomNodeInit = element('section')
+    const streamDomNodeInit = streamDom.element('section')
 
     let actualMounted$
     let actualDestroy$
@@ -460,7 +511,7 @@ describe('mount', function () {
       return streamDomNodeInit.apply(undefined, arguments)
     }
 
-    const mountInfo = mount(nodeInitSpy, testContainerNode)
+    const mountInfo = streamDom.mount(nodeInitSpy, testContainerNode)
 
     assert.isDefined(actualMounted$)
     assert.isDefined(actualDestroy$)
