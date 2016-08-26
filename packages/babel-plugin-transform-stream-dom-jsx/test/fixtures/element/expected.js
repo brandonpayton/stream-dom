@@ -1,6 +1,4 @@
 streamDom.element("div", {
-  attributes: {},
-  properties: {},
-  eventStreams: {},
+  attributes: [],
   children: []
 });

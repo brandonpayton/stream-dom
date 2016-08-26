@@ -1,9 +1,8 @@
 streamDom.component(TestComponent, {
-  properties: {
-    prop1: "expected-string",
-    prop2: 123,
-    prop3: expectedIdentifier
-  },
-  eventStreams: {},
+  attributes: [
+    { name: "prop1", value: "expected-string" },
+    { name: "prop2", value: 123 },
+    { name: "prop3", value: expectedIdentifier }
+  ],
   children: []
 });

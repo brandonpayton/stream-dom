@@ -1,18 +1,14 @@
 streamDom.component(ParentComponent, {
-  properties: {},
-  eventStreams: {},
+  attributes: [],
   children: [
     streamDom.text('\n  '),
     streamDom.component(TestComponent, {
-      properties: {},
-      eventStreams: {},
+      attributes: [],
       children: []
     }),
     streamDom.text('\n  '),
     streamDom.element('hr', {
-      attributes: {},
-      properties: {},
-      eventStreams: {},
+      attributes: [],
       children: []
     }),
     streamDom.text('\n  expected text\n')

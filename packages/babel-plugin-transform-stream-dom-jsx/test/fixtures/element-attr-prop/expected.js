@@ -1,10 +1,7 @@
 streamDom.element("div", {
-  attributes: {
-    id: "expected-id"
-  },
-  properties: {
-    className: "expected-class"
-  },
-  eventStreams: {},
+  attributes: [
+    { name: "id", value: "expected-id" },
+    { namespace: "property", name: "className", value: "expected-class" }
+  ],
   children: []
 });

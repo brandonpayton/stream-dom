@@ -1,8 +1,7 @@
 streamDom.component(TestComponent, {
-  properties: {},
-  eventStreams: {
-    click: handleClick,
-    customEvent: handleCustomEvent
-  },
+  attributes: [
+    { namespace: "event", name: "click", value: handleClick },
+    { namespace: "event", name: "customEvent", value: handleCustomEvent }
+  ],
   children: []
 });

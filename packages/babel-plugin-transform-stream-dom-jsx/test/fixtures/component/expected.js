@@ -1,5 +1,4 @@
 streamDom.component(TestComponent, {
-  properties: {},
-  eventStreams: {},
+  attributes: [],
   children: []
 });

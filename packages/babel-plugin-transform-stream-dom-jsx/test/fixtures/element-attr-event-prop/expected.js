@@ -1,12 +1,8 @@
 streamDom.element("div", {
-  attributes: {
-    id: "expected-id"
-  },
-  properties: {
-    className: "expected-class"
-  },
-  eventStreams: {
-    click: handleClick
-  },
+  attributes: [
+    { name: "id", value: "expected-id" },
+    { namespace: "property", name: "className", value: "expected-class" },
+    { namespace: "event", name: "click", value: handleClick }
+  ],
   children: []
 });

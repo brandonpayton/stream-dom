@@ -1,12 +1,10 @@
 streamDom.component(TestComponent, {
-  properties: {
-    prop1: "expected-string",
-    prop2: 123,
-    prop3: expectedIdentifier
-  },
-  eventStreams: {
-    click: handleClick,
-    customEvent: handleCustomEvent
-  },
+  attributes: [
+    { name: "prop1", value: "expected-string" },
+    { name: "prop2", value: 123 },
+    { name: "prop3", value: expectedIdentifier },
+    { namespace: "event", name: "click", value: handleClick },
+    { namespace: "event", name: "customEvent", value: handleCustomEvent }
+  ],
   children: []
 });

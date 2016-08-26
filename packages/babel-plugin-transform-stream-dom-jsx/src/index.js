@@ -3,10 +3,6 @@ import esutils from 'esutils'
 export default function ({ types }) {
   const t = types
 
-  // TODO: Explicitly error on namespaced things until they're supported
-  // TODO: Support namespaced attributes
-  // TODO: Support spread attributes
-  // TODO: Support spread children
   // TODO: Fix Babylon allowing namespaced member expression
 
   // TODO: Clean this up
@@ -18,14 +14,8 @@ export default function ({ types }) {
     }
   }
 
-  function visitJSXElement(path, state) {
+  function visitJSXElement(path) {
     const { node } = path
-    const {
-      opts: {
-        propertyNamespace = 'property',
-        eventNamespace = 'event'
-      }
-    } = state
 
     path.replaceWith(isComponentName(node.openingElement.name) ? toComponent(node) : toDomElement(node))
 
@@ -33,40 +23,6 @@ export default function ({ types }) {
       openingElement: { attributes: jsxAttributes, name },
       children
     }) {
-      // TODO: Support JSXSpreadAttribute
-      const config = jsxAttributes.reduce(
-        (config, attribute) => {
-          const { name, value } = attribute
-
-          if (isEventListenerName(name)) {
-            config.eventStreams.push(
-              // TODO: Throw error when value is not an expression
-              objectProperty(name.name.name, value.expression)
-            )
-          }
-          else if (isDomPropertyName(name)) {
-            config.properties.push(
-              objectProperty(name.name.name, value.type === 'JSXExpressionContainer' ? value.expression : value)
-            )
-          }
-          // TODO: Handle other namespaced names
-          // TODO: Support or error on dot-delimited names
-          else {
-            config.attributes.push(
-              objectProperty(
-                name.name,
-                value === null ? t.booleanLiteral(true) :
-                  value.type === 'JSXExpressionContainer' ? value.expression :
-                  value
-              )
-            )
-          }
-
-          return config
-        },
-        { attributes: [], namespacedAttributes: [], properties: [], eventStreams: [] }
-      )
-
       const [ elementName, namespaceName ] = isNamespacedName(name)
         ? [ name.name.name, name.namespace.name ]
         : [ name.name, undefined ]
@@ -78,9 +34,7 @@ export default function ({ types }) {
       }
 
       objectProperties.push(
-        objectProperty('attributes', t.objectExpression(config.attributes)),
-        objectProperty('properties', t.objectExpression(config.properties)),
-        objectProperty('eventStreams', t.objectExpression(config.eventStreams)),
+        objectProperty('attributes', toAttributesArray(jsxAttributes)),
         objectProperty('children', mapChildren(children))
       )
 
@@ -94,44 +48,49 @@ export default function ({ types }) {
       openingElement: { attributes: jsxAttributes, name },
       children
     }) {
-      // TODO: Support JSXSpreadAttribute
-      const config = jsxAttributes.reduce(
-        (config, attribute) => {
-          const { name, value } = attribute
-
-          if (isEventListenerName(name)) {
-            config.eventStreams.push(
-              // TODO: Throw error when value is not an expression
-              objectProperty(name.name.name, value.expression)
-            )
-          }
-          else if (isDomPropertyName(name)) {
-            // TODO: Include namespace and name in error message. This message is probably broken as-is.
-            throw new Error(`Components do not support property attributes '${name}'`)
-          }
-          // TODO: Support or error on dot-delimited names
-          else {
-            config.properties.push(
-              objectProperty(name.name, value.type === 'JSXExpressionContainer' ? value.expression : value)
-            )
-          }
-
-          return config
-        },
-        { properties: [], eventStreams: [] }
-      )
-
       return streamDomCallExpression(
         'component',
         [
           isJsxMemberExpression(name) ? toMemberExpression(name) : t.identifier(name.name),
           t.objectExpression([
-            objectProperty('properties', t.objectExpression(config.properties)),
-            objectProperty('eventStreams', t.objectExpression(config.eventStreams)),
+            objectProperty('attributes', toAttributesArray(jsxAttributes)),
             objectProperty('children', mapChildren(children))
           ])
         ]
       )
+    }
+
+    function toAttributesArray(jsxAttributes) {
+      return t.arrayExpression(
+        jsxAttributes.map(jsxAttribute =>
+          jsxAttribute.type === 'JSXSpreadAttribute' ? jsxAttribute.argument : toAttributeObject(jsxAttribute)
+        )
+      )
+    }
+
+    function toAttributeObject(jsxAttribute) {
+      const { name: nameNode, value: valueNode } = jsxAttribute
+
+      const [ namespace, identifier ] = isNamespacedName(nameNode)
+        ? [ nameNode.namespace.name, nameNode.name ]
+        : [ null, nameNode ]
+
+      const attributeProperties = []
+
+      if (namespace) {
+        attributeProperties.push(objectProperty('namespace', t.stringLiteral(namespace)))
+      }
+
+      attributeProperties.push(
+        objectProperty('name', t.stringLiteral(identifier.name)),
+        objectProperty('value',
+          valueNode === null ? t.booleanLiteral(true) :
+          valueNode.type === 'JSXExpressionContainer' ? valueNode.expression :
+          valueNode
+        )
+      )
+
+      return t.objectExpression(attributeProperties)
     }
 
     function mapChildren(children) {
@@ -173,14 +132,6 @@ export default function ({ types }) {
 
     function isNamespacedName(name) {
       return name.type === 'JSXNamespacedName'
-    }
-
-    function isDomPropertyName(name) {
-      return isNamespacedName(name) && name.namespace.name === propertyNamespace
-    }
-
-    function isEventListenerName(name) {
-      return isNamespacedName(name) && name.namespace.name === eventNamespace
     }
 
     function streamDomCallExpression(name, args) {

@@ -1,9 +1,7 @@
 streamDom.element("img", {
-  attributes: {},
-  properties: {},
-  eventStreams: {
-    click: clickHandler,
-    load: loadHandler
-  },
+  attributes: [
+    { namespace: "event", name: "click", value: clickHandler },
+    { namespace: "event", name: "load", value: loadHandler }
+  ],
   children: []
 });

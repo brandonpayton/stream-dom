@@ -1,10 +1,7 @@
 streamDom.element("img", {
-  attributes: {},
-  properties: {
-    className: "expected-class"
-  },
-  eventStreams: {
-    click: clickHandler
-  },
+  attributes: [
+    { namespace: "property", name: "className", value: "expected-class" },
+    { namespace: "event", name: "click", value: clickHandler }
+  ],
   children: []
 });
