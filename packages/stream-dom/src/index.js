@@ -135,7 +135,6 @@ class StreamDom {
 
   mount(streamDomNodeInit, domParentNode, domBeforeNode = null) {
     const mountedProxy$ = createEventStream()
-    // TODO: End mounted$ when destroy$ emits an event
     const mounted$ = mountedProxy$.thru(hold)
     const destroyProxy$ = createEventStream()
     const destroy$ = destroyProxy$.multicast()
