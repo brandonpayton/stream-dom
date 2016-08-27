@@ -1,6 +1,4 @@
 {
   "presets": [ "es2015", "es2016" ],
-  "plugins": [
-    [ "transform-stream-dom-jsx", { "propertyNamespace": "p", "eventNamespace": "e" } ]
-  ]
+  "plugins": [ "transform-stream-dom-jsx" ]
 }

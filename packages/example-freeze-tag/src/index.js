@@ -1,12 +1,12 @@
 import { ViewApp } from './ViewApp'
-import { mount, component } from 'stream-dom'
+import streamDom from './lib/stream-dom'
 
 // mount(
 //   <ViewApp />,
 //   document.getElementById('app-container')
 // )
 
-mount(
-  component(ViewApp),
+streamDom.mount(
+  streamDom.component(ViewApp),
   document.getElementById('app-container')
 )

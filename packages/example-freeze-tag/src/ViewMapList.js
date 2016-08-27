@@ -1,4 +1,4 @@
-import streamDom from 'stream-dom'
+import streamDom from './lib/stream-dom'
 
 export function ViewMapList({ properties: { activeRoute } }) {
   return (

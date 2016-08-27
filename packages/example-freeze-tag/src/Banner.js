@@ -1,27 +1,24 @@
-import { element, text } from 'stream-dom'
+import streamDom from './lib/stream-dom'
 
 export function Banner({
   properties: { routes, activeRoute$, createRouteHref }
 }) {
-  const createTab = tabName => element('span', {
-    attributes: {
-      class: activeRoute$
-        .map(({name}) => tabName === name)
-        .skipRepeats()
-        .map(isActive => isActive ? 'tab active' : 'tab')
-    },
-    children: [
-      element('a', {
-        attributes: { href: createRouteHref({ name: tabName }) },
-        children: [ text(tabName) ]
-      }),
-      // TODO: DEV: Update styles so this padding is not needed
-      text(' ')
-    ]
-  })
+  const createTab = tabName => {
+    const labelClass$ = activeRoute$
+      .map(({name}) => tabName === name)
+      .skipRepeats()
+      .map(isActive => isActive ? 'tab active' : 'tab')
 
-  return element('div', {
-    attributes: { class: 'banner' },
-    children: routes.map(createTab)
-  })
+    return (
+      <span class={labelClass$}>
+        <a href={createRouteHref({ name: tabName })}>{tabName}</a>
+      </span>
+    )
+  }
+
+  return (
+    <div class="banner">
+      {routes.map(createTab)}
+    </div>
+  )
 }

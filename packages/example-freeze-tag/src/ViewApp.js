@@ -1,4 +1,4 @@
-import streamDom from 'stream-dom'
+import streamDom from './lib/stream-dom'
 import { Banner } from './Banner'
 import { ViewMapEditor } from './ViewMapEditor'
 import { ViewMapList } from './ViewMapList'

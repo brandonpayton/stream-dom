@@ -1,4 +1,4 @@
-import streamDom from 'stream-dom'
+import streamDom from './lib/stream-dom'
 import {Point2} from './lib/Point2'
 import {tileTypes} from './lib/Map'
 import {combine, just} from 'most'
@@ -44,9 +44,12 @@ export default function MapCanvas({
 
     const rectangle$$ = mouseDown$
       .map(eventToPoint)
-      .map(startPoint => mouseMove$
+      .map(startPoint =>
+        mouseMove$
         .map(eventToPoint)
-        .map(endPoint => toRectangle(startPoint, endPoint))
+        .map(
+          endPoint => toRectangle(startPoint, endPoint)
+        )
         .until(mouseUp$)
       )
       .multicast()

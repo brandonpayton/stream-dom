@@ -1,4 +1,4 @@
-import streamDom from 'stream-dom'
+import streamDom from './lib/stream-dom'
 import MapCanvas from './MapCanvas'
 import Map, {tileTypes} from './lib/Map'
 
