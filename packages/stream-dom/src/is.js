@@ -2,7 +2,7 @@ import symbolObservable from 'symbol-observable'
 
 export default {
   array(candidate) {
-    return candidate instanceof Array
+    return Array.isArray(candidate)
   },
 
   boolean(candidate) {
