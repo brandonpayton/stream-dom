@@ -1,4 +1,4 @@
-import is from '../../is'
+import is from '../is'
 
 export function initializeChildren(children, scope) {
   return children.reduce(reduceChildren, [])

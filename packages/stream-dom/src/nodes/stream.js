@@ -1,7 +1,7 @@
 import { merge } from 'most'
 import create from 'lodash.create'
 
-import { initializeChildren } from './util/initializeChildren'
+import { initializeChildren } from './util'
 
 export function stream(context, children$) {
   return (scope) => {

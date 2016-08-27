@@ -1,4 +1,4 @@
-import { initializeChildren } from './util/initializeChildren'
+import { initializeChildren } from './util'
 import is from '../is'
 import { attachEventStream } from '../eventing'
 
