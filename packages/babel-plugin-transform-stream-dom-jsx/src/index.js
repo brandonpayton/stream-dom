@@ -5,8 +5,6 @@ export default function ({ types }) {
 
   // TODO: Fix Babylon allowing namespaced member expression
 
-  // TODO: Clean this up
-
   return {
     inherits: require('babel-plugin-syntax-jsx'),
     visitor: {
@@ -71,7 +69,7 @@ export default function ({ types }) {
     function toAttributeObject(jsxAttribute) {
       const { name: nameNode, value: valueNode } = jsxAttribute
 
-      const [ namespace, identifier ] = isNamespacedName(nameNode)
+      const [ namespace, jsxIdentifier ] = isNamespacedName(nameNode)
         ? [ nameNode.namespace.name, nameNode.name ]
         : [ null, nameNode ]
 
@@ -82,7 +80,7 @@ export default function ({ types }) {
       }
 
       attributeProperties.push(
-        objectProperty('name', t.stringLiteral(identifier.name)),
+        objectProperty('name', t.stringLiteral(jsxIdentifier.name)),
         objectProperty('value',
           valueNode === null ? t.booleanLiteral(true) :
           valueNode.type === 'JSXExpressionContainer' ? valueNode.expression :
