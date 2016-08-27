@@ -7,49 +7,6 @@ import _ from 'lodash'
 import {createEventStream, attachEventStream} from './eventing'
 import is from './is'
 
-function setWithStream(value, setter, { destroy$ }) {
-  is.stream(value)
-    ? value.until(destroy$).observe(setter)
-    : setter(value)
-}
-
-function handleAttribute(domNode, { namespace, name, value }, config) {
-  const namespaceUri = namespace ? config.getNamespaceUri(namespace) : null
-
-  setWithStream(value, setAttribute, config)
-
-  function setAttribute(effectiveValue) {
-    if (is.boolean(effectiveValue)) {
-      value
-        ? domNode.setAttributeNS(namespaceUri, name, '')
-        : domNode.removeAttribute(namespaceUri, name)
-    }
-    else {
-      domNode.setAttributeNS(namespaceUri, name, effectiveValue)
-    }
-  }
-}
-
-export function handlePropertyAttribute(domNode, { name, value }, config) {
-  setWithStream(value, setProperty, config)
-
-  function setProperty(effectiveValue) {
-    domNode[name] = effectiveValue
-  }
-}
-
-export function handleEventAttribute(domNode, { name, value: proxy$ }, { mounted$, destroy$ }) {
-  if (name === 'mount') {
-    attachEventStream(proxy$, mounted$.map(() => ({ target: domNode })))
-  }
-  else if (name === 'destroy') {
-    attachEventStream(proxy$, destroy$.map(() => ({ target: domNode })))
-  }
-  else {
-    attachEventStream(proxy$, domEvent(name, domNode).until(destroy$))
-  }
-}
-
 const defaultNamespaceUriMap = {
   html: 'http://www.w3.org/1999/xhtml',
   svg: 'http://www.w3.org/2000/svg',
@@ -140,11 +97,7 @@ class StreamDom {
     const destroy$ = destroyProxy$.multicast()
 
     const config = {
-      document: this.document,
       parentNamespaceUri: this.getDefaultNamespaceUri(),
-      namespaceUriMap: this.namespaceUriMap,
-      getNamespaceUri: namespaceName => this.getNamespaceUri(namespaceName),
-      getDefaultNamespaceUri: () => this.getDefaultNamespaceUri(),
       mounted$,
       destroy$
     }
@@ -157,7 +110,7 @@ class StreamDom {
 
     nodeDescriptor.insert(domParentNode, domBeforeNode)
 
-    domNode.dispatchEvent(new CustomEvent('mount'))
+    setTimeout(() => domNode.dispatchEvent(new CustomEvent('mount')), 0)
 
     destroy$.observe(() => nodeDescriptor.remove())
 
@@ -179,54 +132,37 @@ class StreamDom {
     children = []
   } = {}) {
     return (config) => {
-      const { eventNamespaceName, propertyNamespaceName } = this
-      const { document, parentNamespaceUri, mounted$, destroy$ } = config
+      const { document } = this
+      const { parentNamespaceUri, mounted$, destroy$ } = config
       const namespaceUri = namespaceName ? this.getNamespaceUri(namespaceName) : parentNamespaceUri
       const domNode = document.createElementNS(namespaceUri, name)
 
-      processAttributes(attributes)
+      this.processAttributes(domNode, attributes, config)
 
       const fragment = document.createDocumentFragment()
 
-      const childDescriptors = initializeChildren(children, _.create(config, { parentNamespaceUri: namespaceUri }))
+      const childDescriptors = this.initializeChildren(children, _.create(config, { parentNamespaceUri: namespaceUri }))
       childDescriptors.forEach(cd => cd.insert(fragment))
 
       domNode.appendChild(fragment)
 
       return new this.ElementNodeDescriptor({ domNode, childDescriptors, mounted$, destroy$ })
-
-      function processAttributes(attributes) {
-        attributes.forEach(attributeDescriptor => {
-          if (is.array(attributeDescriptor)) {
-            processAttributes(attributeDescriptor)
-          }
-          else {
-            const { namespace } = attributeDescriptor
-            const handler =
-              namespace === eventNamespaceName ? handleEventAttribute :
-              namespace === propertyNamespaceName ? handlePropertyAttribute :
-              handleAttribute
-
-            handler(domNode, attributeDescriptor, config)
-          }
-        })
-      }
     }
   }
 
   stream(children$) {
     return (config) => {
-      const { document, destroy$ } = config
+      const { destroy$ } = config
       const domStartNode = this.document.createComment('')
       const domEndNode = this.document.createComment('')
 
       const childDescriptors$ = children$
         .until(destroy$)
-        .map(children => initializeChildren(children, _.create(config, {
+        .map(children => this.initializeChildren(children, _.create(config, {
           destroy$: merge(children$, destroy$).take(1),
         })))
         .tap(childDescriptors => {
-          const { sharedRange} = this
+          const { document, sharedRange } = this
 
           const fragment = document.createDocumentFragment()
           childDescriptors.forEach(childDescriptor => childDescriptor.insert(fragment))
@@ -272,30 +208,90 @@ class StreamDom {
 
   expression(value) {
     return (
-      is.stream(value) ? this.stream(value) :
+      is.stream(value) ? this.stream(value.multicast()) :
       is.array(value) ? value.map(c => this.expression(c)) :
       is.function(value) ? value :
       this.text(value)
     )
   }
-}
 
-function initializeChildren(children, config) {
-  function reduceChildren(descriptors, childInitOrArray) {
-    if (is.array(childInitOrArray)) {
-      childInitOrArray.reduce(reduceChildren, descriptors)
-    }
-    else if (is.function(childInitOrArray)) {
-      descriptors.push(childInitOrArray(config))
-    }
-    else {
-      throw new Error('Unexpected child type', childInitOrArray)
-    }
+  processAttributes(domNode, attributes, config) {
+    attributes.forEach(attributeDescriptor => {
+      if (is.array(attributeDescriptor)) {
+        this.processAttributes(domNode, attributeDescriptor, config)
+      }
+      else {
+        const { namespace } = attributeDescriptor
+        const handlerName =
+          namespace === this.eventNamespaceName ? 'handleEventAttribute' :
+          namespace === this.propertyNamespaceName ? 'handlePropertyAttribute' :
+          'handleAttribute'
 
-    return descriptors
+        this[handlerName](domNode, attributeDescriptor, config)
+      }
+    })
   }
 
-  return children.reduce(reduceChildren, [])
+  setWithStream(value, setter, { destroy$ }) {
+    is.stream(value)
+      ? value.until(destroy$).observe(setter)
+      : setter(value)
+  }
+
+  handleAttribute(domNode, { namespace, name, value }, config) {
+    const namespaceUri = namespace ? this.getNamespaceUri(namespace) : null
+
+    this.setWithStream(value, setAttribute, config)
+
+    function setAttribute(effectiveValue) {
+      if (is.boolean(effectiveValue)) {
+        value
+          ? domNode.setAttributeNS(namespaceUri, name, '')
+          : domNode.removeAttributeNS(namespaceUri, name)
+      }
+      else {
+        domNode.setAttributeNS(namespaceUri, name, effectiveValue)
+      }
+    }
+  }
+
+  handlePropertyAttribute(domNode, { name, value }, config) {
+    this.setWithStream(value, setProperty, config)
+
+    function setProperty(effectiveValue) {
+      domNode[name] = effectiveValue
+    }
+  }
+
+  handleEventAttribute(domNode, { name, value: proxy$ }, { mounted$, destroy$ }) {
+    if (name === 'mount') {
+      attachEventStream(proxy$, mounted$.map(() => ({ target: domNode })))
+    }
+    else if (name === 'destroy') {
+      attachEventStream(proxy$, destroy$.map(() => ({ target: domNode })))
+    }
+    else {
+      attachEventStream(proxy$, domEvent(name, domNode).until(destroy$))
+    }
+  }
+
+  initializeChildren(children, config) {
+    return children.reduce(reduceChildren, [])
+
+    function reduceChildren(descriptors, childInitOrArray) {
+      if (is.array(childInitOrArray)) {
+        childInitOrArray.reduce(reduceChildren, descriptors)
+      }
+      else if (is.function(childInitOrArray)) {
+        descriptors.push(childInitOrArray(config))
+      }
+      else {
+        throw new Error('Unexpected child type', childInitOrArray)
+      }
+
+      return descriptors
+    }
+  }
 }
 
 export function configureStreamDom(...config) {
