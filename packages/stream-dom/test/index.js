@@ -273,6 +273,10 @@ describe('stream-dom nodes', function () {
       domAssert.elementProperties(domNode, expectedProperties)
     })
 
+    // TODO: handles namespaced attributes
+
+    // TODO: handles boolean attributes
+
     // TODO: Test using event subjects in until()
     it('creates an element with event streams', function () {
       const expectedElementName = 'div'
