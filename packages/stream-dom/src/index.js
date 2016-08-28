@@ -65,8 +65,8 @@ class StreamDom {
   }
 }
 
-export function configureStreamDom(...config) {
-  return new StreamDom(...config)
+export function configureStreamDom(config) {
+  return new StreamDom(config)
 }
 
 const streamDom = configureStreamDom()
