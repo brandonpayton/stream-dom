@@ -38,6 +38,7 @@
   "devDependencies": {
     "babel-core": "^6.14.0",
     "babel-loader": "^6.2.5",
+    "babel-polyfill": "^6.13.0",
     "buba": "^2.0.3",
     "chai": "^3.5.0",
     "esprima": "^2.7.2",

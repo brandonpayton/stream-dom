@@ -5,6 +5,7 @@ module.exports = function(config) {
     singleRun: true,
 
     files: [
+      './node_modules/babel-polyfill/browser.js',
       'test/index.js',
       'test/eventing.js'
     ],
