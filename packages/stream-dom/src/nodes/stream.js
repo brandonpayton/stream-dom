@@ -6,13 +6,15 @@ import { initializeChildren } from './util'
 export function stream(context, children$) {
   return (scope) => {
     const { document } = context
-    const { destroy$ } = scope
+    const { mounted$, destroy$ } = scope
     const domStartNode = document.createComment('')
     const domEndNode = document.createComment('')
 
     const childDescriptors$ = children$
       .until(destroy$)
       .map(children => initializeChildren(children, create(scope, {
+        // TODO: Remove use of delay() workaround for most-proxy sync dispatch during attach
+        mounted$: mounted$.delay(1),
         destroy$: merge(children$, destroy$).take(1),
       })))
       .tap(childDescriptors => {
