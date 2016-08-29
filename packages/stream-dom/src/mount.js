@@ -1,7 +1,7 @@
 import {domEvent} from '@most/dom-event'
 import hold from '@most/hold'
 
-import { createEventStream, attachEventStream } from './eventing'
+import { createEventStream, attachEventStream, createCustomEvent } from './eventing'
 
 export function mount(context, streamDomNodeInit, domParentNode, domBeforeNode = null) {
   const mountedProxy$ = createEventStream()
@@ -23,14 +23,15 @@ export function mount(context, streamDomNodeInit, domParentNode, domBeforeNode =
 
   nodeDescriptor.insert(domParentNode, domBeforeNode)
 
-  setTimeout(() => domNode.dispatchEvent(new CustomEvent('mount')), 0)
+  const { document } = context
+  setTimeout(() => domNode.dispatchEvent(createCustomEvent(document, 'mount')), 0)
 
   destroy$.observe(() => nodeDescriptor.remove())
 
   return {
     nodeDescriptor,
     dispose() {
-      domNode.dispatchEvent(new CustomEvent('destroy'))
+      domNode.dispatchEvent(createCustomEvent(document, 'destroy'))
     }
   }
 }
