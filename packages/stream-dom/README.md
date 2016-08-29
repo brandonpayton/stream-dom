@@ -1,5 +1,7 @@
 # stream-dom
 
+[![Build Status](https://travis-ci.org/brandonpayton/stream-dom.svg?branch=master)](https://travis-ci.org/brandonpayton/stream-dom)
+
 🚨 EXPERIMENTAL 🚨
 
 Pursuing reactive UI construction with simplicity and minimal magic.
