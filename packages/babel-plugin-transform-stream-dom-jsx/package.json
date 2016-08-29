@@ -34,6 +34,7 @@
     "esutils": "^2.0.2"
   },
   "devDependencies": {
+    "babel-cli": "^6.14.0",
     "babel-register": "^6.11.6",
     "chai": "^3.5.0",
     "esprima": "^2.7.2",
