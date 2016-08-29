@@ -6,8 +6,11 @@ import { createEventStream, attachEventStream, createCustomEvent } from './event
 export function mount(context, streamDomNodeInit, domParentNode, domBeforeNode = null) {
   const mountedProxy$ = createEventStream()
   const mounted$ = mountedProxy$.thru(hold)
+  mounted$.drain()
+
   const destroyProxy$ = createEventStream()
-  const destroy$ = destroyProxy$.multicast()
+  const destroy$ = destroyProxy$.thru(hold)
+  destroy$.drain()
 
   const config = {
     parentNamespaceUri: context.getDefaultNamespaceUri(),
