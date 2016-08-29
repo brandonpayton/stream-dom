@@ -1,4 +1,24 @@
-var path = require('path')
+const path = require('path')
+
+const customLaunchers = {
+  sl_chrome: {
+    base: 'SauceLabs',
+    browserName: 'chrome',
+    platform: 'Windows 7',
+    version: '35'
+  },
+  sl_firefox: {
+    base: 'SauceLabs',
+    browserName: 'firefox',
+    version: '48'
+  },
+  sl_ie_11: {
+    base: 'SauceLabs',
+    browserName: 'internet explorer',
+    platform: 'Windows 7',
+    version: '11'
+  }
+}
 
 module.exports = function(config) {
   config.set({
@@ -52,11 +72,15 @@ module.exports = function(config) {
       require('karma-webpack'),
       require('karma-sourcemap-loader'),
       require('karma-mocha'),
-      require('karma-chrome-launcher'),
-      require('karma-firefox-launcher'),
+      require('karma-sauce-launcher'),
       require('karma-spec-reporter')
     ],
 
-    browsers: [ 'Chrome', 'Firefox' ]
+    sauceLabs: {
+      testName: 'Web App Unit Tests'
+    },
+    customLaunchers: customLaunchers,
+    browsers: Object.keys(customLaunchers),
+
   })
 }
