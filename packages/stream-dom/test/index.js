@@ -347,6 +347,7 @@ describe('stream-dom nodes', function () {
         children: [ streamDom.stream(children$) ]
       })
       const elementDescriptor = init(config({ mounted$, destroy$ }))
+      elementDescriptor.insert(document.body)
 
       const {domNode} = elementDescriptor
       const streamChildDescriptor = elementDescriptor.childDescriptors[0]
@@ -406,6 +407,7 @@ describe('stream-dom nodes', function () {
         ]
       })
       const elementDescriptor = init(config({ mounted$, destroy$ }))
+      elementDescriptor.insert(document.body)
       const {domNode} = elementDescriptor
 
       domAssert.elementNode(domNode, expectedTagName)
