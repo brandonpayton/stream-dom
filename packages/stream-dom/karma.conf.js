@@ -97,6 +97,7 @@ module.exports = function(config) {
     sauceLabs: {
       testName: 'Web App Unit Tests'
     },
+    captureTimeout: 120000,
     customLaunchers: customLaunchers,
     browsers: Object.keys(customLaunchers)
   })
