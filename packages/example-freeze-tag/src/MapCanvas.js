@@ -1,5 +1,5 @@
 import streamDom from './lib/stream-dom'
-import {Point2} from './lib/Point2'
+import Point2D from 'kld-affine/lib/Point2D'
 import {tileTypes} from './lib/Map'
 import {combine, just} from 'most'
 
@@ -10,10 +10,10 @@ export default function MapCanvas({
 }) {
   // TODO: Switch from "Point" to "Position"
   function eventToPoint(event) {
-    return new Point2({
-      x: Math.floor(event.offsetX / event.target.offsetWidth * map.numColumns),
-      y: Math.floor(event.offsetY / event.target.offsetHeight * map.numRows)
-    })
+    return new Point2D(
+      Math.floor(event.offsetX / event.target.offsetWidth * map.numColumns),
+      Math.floor(event.offsetY / event.target.offsetHeight * map.numRows)
+    )
   }
 
   function toRectangle(point1, point2) {
