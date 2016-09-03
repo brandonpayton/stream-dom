@@ -14,7 +14,7 @@
     "prebuild": "npm run clean",
     "build": "buba -i src/ -o lib/",
     "pretest": "npm run build",
-    "test": "karma start karma start test/karma.config.comprehensive.js",
+    "test": "karma start test/karma.config.comprehensive.js",
     "pretest:local": "npm run pretest",
     "test:local": "karma start test/karma.config.local.js"
   },
