@@ -14,7 +14,9 @@
     "prebuild": "npm run clean",
     "build": "buba -i src/ -o lib/",
     "pretest": "npm run build",
-    "test": "karma start"
+    "test": "karma start karma start test/karma.config.comprehensive.js",
+    "pretest:local": "npm run pretest",
+    "test:local": "karma start test/karma.config.local.js"
   },
   "repository": {
     "type": "git",
@@ -43,8 +45,9 @@
     "chai": "^3.5.0",
     "esprima": "^2.7.2",
     "karma": "^1.1.0",
-    "karma-sauce-launcher": "^1.0.0",
     "karma-mocha": "^1.1.1",
+    "karma-phantomjs-launcher": "^1.0.2",
+    "karma-sauce-launcher": "^1.0.0",
     "karma-sourcemap-loader": "^0.3.7",
     "karma-spec-reporter": "0.0.26",
     "karma-webpack": "^1.7.0",
