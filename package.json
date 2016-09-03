@@ -7,7 +7,7 @@
   "scripts": {
     "postinstall": "lerna bootstrap",
     "test": "lerna run test",
-    "prepublish": "lerna run test",
+    "preversion": "npm test",
     "publish": "lerna publish"
   },
   "devDependencies": {
