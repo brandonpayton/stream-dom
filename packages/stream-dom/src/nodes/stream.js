@@ -1,5 +1,5 @@
 import { merge } from 'most'
-import create from 'lodash.create'
+import { create } from 'util'
 
 import { initializeChildren } from './util'
 

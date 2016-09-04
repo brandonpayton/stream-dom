@@ -2,7 +2,7 @@ import { initializeChildren } from './util'
 import is from '../is'
 import { attachEventStream } from '../eventing'
 
-import create from 'lodash.create'
+import { create } from 'util'
 import { domEvent } from '@most/dom-event'
 
 export function element(context, name, {

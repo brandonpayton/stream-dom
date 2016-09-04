@@ -1,5 +1,13 @@
 import is from '../is'
 
+export function create(base, ...mixinObjects) {
+  const result = Object.create(base)
+  mixinObjects.forEach(mixinObject => {
+    Object.keys(mixinObject).forEach(key => result[key] = mixinObject[key])
+  })
+  return result
+}
+
 export function initializeChildren(children, scope) {
   return children.reduce(reduceChildren, [])
 
