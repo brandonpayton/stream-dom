@@ -1,9 +1,19 @@
-import {domEvent} from '@most/dom-event'
+import { Stream } from 'most'
+
 import hold from '@most/hold'
+import { domEvent } from '@most/dom-event'
 
 import { createEventStream, attachEventStream, createCustomEvent } from './eventing'
 
-export function mount(context, streamDomNodeInit, domParentNode, domBeforeNode = null) {
+import { StreamDomContext, StreamDomScope } from './index'
+import { InitializeElementNode } from './nodes/dom'
+
+export function mount(
+  context: StreamDomContext,
+  streamDomNodeInit: InitializeElementNode,
+  domParentNode: Element,
+  domBeforeNode: Node = null
+) {
   const mountedProxy$ = createEventStream()
   const mounted$ = mountedProxy$.thru(hold)
   mounted$.drain()
@@ -12,13 +22,13 @@ export function mount(context, streamDomNodeInit, domParentNode, domBeforeNode =
   const destroy$ = destroyProxy$.thru(hold)
   destroy$.drain()
 
-  const config = {
-    parentNamespaceUri: context.getDefaultNamespaceUri(),
+  const scope: StreamDomScope = {
+    parentNamespaceUri: context.defaultNamespaceUri,
     mounted$,
     destroy$
   }
 
-  const nodeDescriptor = streamDomNodeInit(config)
+  const nodeDescriptor = streamDomNodeInit(scope)
   const {domNode} = nodeDescriptor
 
   attachEventStream(mountedProxy$, domEvent('mount', domNode).take(1))

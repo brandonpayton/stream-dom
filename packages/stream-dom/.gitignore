@@ -1,1 +1,3 @@
 lib
+src/**/*.js
+typings

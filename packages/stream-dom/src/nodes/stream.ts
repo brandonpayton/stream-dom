@@ -1,10 +1,12 @@
-import { merge } from 'most'
-import { create } from 'util'
+import { merge, Stream } from 'most'
 
-import { initializeChildren } from './util'
+import { create, initializeChildren } from './util'
 
-export function stream(context, children$) {
-  return (scope) => {
+import { DomContainerNode, Child, InitializeNode, NodeDescriptor } from './node'
+import { StreamDomContext, StreamDomScope } from '../index'
+
+export function stream(context: StreamDomContext, children$: Stream<Child[]>) : InitializeNode {
+  return (scope: StreamDomScope) => {
     const { document } = context
     const { mounted$, destroy$ } = scope
     const domStartNode = document.createComment('')
@@ -12,7 +14,7 @@ export function stream(context, children$) {
 
     const childDescriptors$ = children$
       .until(destroy$)
-      .map(children => initializeChildren(children, create(scope, {
+      .map(children => initializeChildren(children, <StreamDomScope>create(scope, {
         // TODO: Remove use of delay() workaround for most-proxy sync dispatch during attach
         mounted$: mounted$.delay(1),
         destroy$: merge(children$, destroy$).take(1),
@@ -28,29 +30,42 @@ export function stream(context, children$) {
         sharedRange.deleteContents()
         sharedRange.insertNode(fragment)
       })
+      // TODO: Add multicast() here after TS conversion and test
 
     childDescriptors$.drain()
 
-    return new StreamNodeDescriptor({
-      sharedRange: context.sharedRange,
+    return new StreamNodeDescriptor(
+      context.sharedRange,
       domStartNode,
       domEndNode,
       childDescriptors$
-    })
+    )
   }
 }
 
 class StreamNodeDescriptor {
+  sharedRange: Range
+  domStartNode: Node
+  domEndNode: Node
+  childDescriptors$: Stream<NodeDescriptor[]>
+
   get type() { return 'stream' }
 
-  constructor({ sharedRange, domStartNode, domEndNode, childDescriptors$ }) {
+  // TODO: As an internal API, why not simply use discrete args?
+  constructor(
+    sharedRange: Range,
+    domStartNode: Node,
+    domEndNode: Node,
+    // TODO: Allow nesting?
+    childDescriptors$: Stream<NodeDescriptor[]>
+  ) {
     this.sharedRange = sharedRange
     this.domStartNode = domStartNode
     this.domEndNode = domEndNode
     this.childDescriptors$ = childDescriptors$
   }
 
-  insert(domParentNode, domBeforeNode = null) {
+  insert(domParentNode: DomContainerNode, domBeforeNode: Node = null) {
     domParentNode.insertBefore(this.domStartNode, domBeforeNode)
     domParentNode.insertBefore(this.domEndNode, domBeforeNode)
   }

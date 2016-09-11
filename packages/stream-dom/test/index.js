@@ -12,7 +12,7 @@ function config({ mounted$, destroy$ }) {
   return {
     document,
     // TODO: What's the point of `getDefaultNamespaceUri`?
-    parentNamespaceUri: streamDom.getDefaultNamespaceUri(),
+    parentNamespaceUri: streamDom.defaultNamespaceUri,
     namespaceUriMap: streamDom.namespaceUriMap,
     getNamespaceUri: namespaceName => streamDom.getNamespaceUri(namespaceName),
     mounted$,
