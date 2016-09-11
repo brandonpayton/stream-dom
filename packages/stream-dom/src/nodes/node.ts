@@ -15,7 +15,7 @@ export interface InitializeNode {
 }
 
 // TODO: Strengthen this name
-export type Child = InitializeNode | InitializeNode[]
+export type ChildDeclaration = InitializeNode | InitializeNode[]
 
 export interface Attribute {
   namespace?: string

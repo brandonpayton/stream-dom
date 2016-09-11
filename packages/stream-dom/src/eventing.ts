@@ -1,15 +1,17 @@
 import { Stream } from 'most'
 import { proxy } from 'most-proxy'
 
+export type DomEvent = Event | CustomEvent | { target: Element }
+
 const attachProp = '@@most-proxy-attach'
 
-export function createEventStream<A>(): Stream<A> {
-  const {attach, stream} = proxy<A>()
+export function createEventStream(): Stream<DomEvent> {
+  const {attach, stream} = proxy<DomEvent>()
   stream[attachProp] = attach
   return stream
 }
 
-export function attachEventStream<A>(proxy$: Stream<A>, stream$: Stream<A>): void {
+export function attachEventStream(proxy$: Stream<DomEvent>, stream$: Stream<DomEvent>): void {
   proxy$[attachProp](stream$)
 }
 

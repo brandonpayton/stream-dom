@@ -1,9 +1,10 @@
 import { mount } from './mount'
-import { element, text, InitializeElementNode, ElementDeclarationArgs } from './nodes/dom'
-import { component, ComponentDeclarationArgs } from './nodes/component'
+import { element, text, InitializeElementNode, ElementDetails } from './nodes/dom'
+import { component, ComponentDetails } from './nodes/component'
 import { stream } from './nodes/stream'
 import { expression } from './nodes/expression'
-import { Child } from './nodes/node'
+import { ChildDeclaration } from './nodes/node'
+import { DomEvent } from './eventing'
 
 import { Stream } from 'most'
 
@@ -11,7 +12,6 @@ interface UriMap {
   [s: string]: string
 }
 
-// TODO: Consider renaming `context` to `config`
 export interface StreamDomContext {
   document: HTMLDocument
   eventNamespaceName: string
@@ -23,9 +23,8 @@ export interface StreamDomContext {
 
 export interface StreamDomScope {
   parentNamespaceUri: string,
-  // TODO: Strengthen Stream type param
-  mounted$: Stream<any>,
-  destroy$: Stream<any>
+  mounted$: Stream<DomEvent>,
+  destroy$: Stream<DomEvent>
 }
 
 export const defaultNamespaceUriMap: UriMap = {
@@ -80,15 +79,15 @@ class StreamDom implements StreamDomContext {
     return text(this, str)
   }
 
-  element(name: string, details: ElementDeclarationArgs) {
+  element(name: string, details: ElementDetails) {
     return element(this, name, details)
   }
 
-  stream(children$: Stream<Child[]>) {
+  stream(children$: Stream<ChildDeclaration[]>) {
     return stream(this, children$)
   }
 
-  component(ComponentFactory: Function, details: ComponentDeclarationArgs) {
+  component(ComponentFactory: Function, details: ComponentDetails) {
     return component(this, ComponentFactory, details)
   }
 

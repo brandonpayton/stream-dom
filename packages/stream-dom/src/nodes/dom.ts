@@ -1,6 +1,6 @@
 import { Attributes, Attribute, InitializeNode, NodeDescriptor, DomContainerNode } from './node'
-import { create, initializeChildren } from './util'
-import is from '../is'
+import { isStream } from './stream'
+import { initializeChildren } from './util'
 import { attachEventStream } from '../eventing'
 import { StreamDomContext, StreamDomScope } from '../index'
 
@@ -8,7 +8,7 @@ import { domEvent } from '@most/dom-event'
 
 export type InitializeElementNode = (scope: StreamDomScope) => ElementNodeDescriptor
 
-export interface ElementDeclarationArgs {
+export interface ElementDetails {
   namespaceName?: string
   attributes?: Attributes,
   children?: InitializeNode[]
@@ -21,7 +21,7 @@ export function element(
     namespaceName = null,
     attributes = [],
     children = []
-  }: ElementDeclarationArgs = {}
+  }: ElementDetails = {}
 ): InitializeElementNode {
   return (scope: StreamDomScope) => {
     const { document } = context
@@ -33,12 +33,13 @@ export function element(
 
     const fragment = document.createDocumentFragment()
 
-    const childDescriptors = initializeChildren(
-      children,
-      <StreamDomScope>create(scope, { parentNamespaceUri: namespaceUri })
-    )
+    const childScope = {
+      parentNamespaceUri: namespaceUri,
+      mounted$: scope.mounted$,
+      destroy$: scope.destroy$
+    }
+    const childDescriptors = initializeChildren(children, childScope)
     childDescriptors.forEach(cd => cd.insert(fragment))
-
     domNode.appendChild(fragment)
 
     return new ElementNodeDescriptor({ domNode, childDescriptors })
@@ -76,7 +77,7 @@ function setWithStream(
   setter: (value: any) => void,
   { destroy$ }: StreamDomScope
 ) {
-  is.stream(valueOrStream)
+  isStream(valueOrStream)
     ? valueOrStream.until(destroy$).observe(setter)
     : setter(valueOrStream)
 }
@@ -92,7 +93,7 @@ function handleAttribute(
   setWithStream(value, setAttribute, scope)
 
   function setAttribute(effectiveValue: any) {
-    if (is.boolean(effectiveValue)) {
+    if (effectiveValue === true || effectiveValue === false) {
       value
         ? elementNode.setAttributeNS(namespaceUri, name, '')
         : elementNode.removeAttributeNS(namespaceUri, name)

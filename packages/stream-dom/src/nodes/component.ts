@@ -1,12 +1,11 @@
 import { Stream } from 'most'
 
 import { createEventStream } from '../eventing'
-import is from '../is'
 
 import { StreamDomContext } from '../index'
 import { Attributes, Attribute, InitializeNode } from './node'
 
-export interface ComponentDeclarationArgs {
+export interface ComponentDetails {
   attributes?: Attributes,
   children?: InitializeNode[]
 }
@@ -15,14 +14,13 @@ interface ComponentFactoryArgs {
   properties: { [s: string]: any },
   eventStreams: { [s: string]: Stream<any> },
   children: InitializeNode[],
-  // TODO: Does this actually work?
   createEventStream: typeof createEventStream
 }
 
 export function component(
   context: StreamDomContext,
   ComponentFactory: Function,
-  { attributes = [], children = [] }: ComponentDeclarationArgs = {}
+  { attributes = [], children = [] }: ComponentDetails = {}
 ) {
   const args: ComponentFactoryArgs = { properties: {}, eventStreams: {}, children, createEventStream }
 

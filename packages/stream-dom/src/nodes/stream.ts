@@ -1,11 +1,13 @@
 import { merge, Stream } from 'most'
 
-import { create, initializeChildren } from './util'
+import { initializeChildren } from './util'
 
-import { DomContainerNode, Child, InitializeNode, NodeDescriptor } from './node'
+import { DomContainerNode, ChildDeclaration, InitializeNode, NodeDescriptor } from './node'
 import { StreamDomContext, StreamDomScope } from '../index'
 
-export function stream(context: StreamDomContext, children$: Stream<Child[]>) : InitializeNode {
+import symbolObservable from 'symbol-observable'
+
+export function stream(context: StreamDomContext, children$: Stream<ChildDeclaration[]>) : InitializeNode {
   return (scope: StreamDomScope) => {
     const { document } = context
     const { mounted$, destroy$ } = scope
@@ -14,11 +16,15 @@ export function stream(context: StreamDomContext, children$: Stream<Child[]>) : 
 
     const childDescriptors$ = children$
       .until(destroy$)
-      .map(children => initializeChildren(children, <StreamDomScope>create(scope, {
-        // TODO: Remove use of delay() workaround for most-proxy sync dispatch during attach
-        mounted$: mounted$.delay(1),
-        destroy$: merge(children$, destroy$).take(1),
-      })))
+      .map(children => {
+        const childScope = {
+          parentNamespaceUri: scope.parentNamespaceUri,
+          // TODO: Remove use of delay() workaround for most-proxy sync dispatch during attach
+          mounted$: mounted$.delay(1).multicast(),
+          destroy$: merge<any>(children$, destroy$).take(1).multicast()
+        }
+        return initializeChildren(children, childScope)
+      })
       .tap(childDescriptors => {
         const { document, sharedRange } = context
 
@@ -30,7 +36,7 @@ export function stream(context: StreamDomContext, children$: Stream<Child[]>) : 
         sharedRange.deleteContents()
         sharedRange.insertNode(fragment)
       })
-      // TODO: Add multicast() here after TS conversion and test
+      .multicast()
 
     childDescriptors$.drain()
 
@@ -51,12 +57,10 @@ class StreamNodeDescriptor {
 
   get type() { return 'stream' }
 
-  // TODO: As an internal API, why not simply use discrete args?
   constructor(
     sharedRange: Range,
     domStartNode: Node,
     domEndNode: Node,
-    // TODO: Allow nesting?
     childDescriptors$: Stream<NodeDescriptor[]>
   ) {
     this.sharedRange = sharedRange
@@ -75,4 +79,8 @@ class StreamNodeDescriptor {
     sharedRange.setEndAfter(this.domEndNode)
     sharedRange.deleteContents()
   }
+}
+
+export function isStream(candidate: any): boolean {
+  return !!candidate[symbolObservable]
 }
