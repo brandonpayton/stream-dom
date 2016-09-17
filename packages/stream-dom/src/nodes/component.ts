@@ -1,9 +1,9 @@
 import { Stream } from 'most'
 
-import { createEventStream } from '../eventing'
+import { createEventStream, attachEventStream, bindEventStream } from '../eventing'
 
-import { StreamDomContext } from '../index'
-import { Attributes, Attribute, InitializeNode } from './node'
+import { StreamDomContext, StreamDomScope } from '../index'
+import { Attributes, Attribute, InitializeNode, NodeDescriptor } from './node'
 
 export interface ComponentDetails {
   attributes?: Attributes,
@@ -14,15 +14,21 @@ interface ComponentFactoryArgs {
   properties: { [s: string]: any },
   eventStreams: { [s: string]: Stream<any> },
   children: InitializeNode[],
-  createEventStream: typeof createEventStream
+  createEventStream: typeof createEventStream,
+  attachEventStream: typeof attachEventStream
+}
+
+export interface ComponentFactory {
+  (ComponentFactoryArgs): InitializeNode
 }
 
 export function component(
   context: StreamDomContext,
-  ComponentFactory: Function,
+  ComponentFactory: ComponentFactory,
   { attributes = [], children = [] }: ComponentDetails = {}
 ) {
-  const args: ComponentFactoryArgs = { properties: {}, eventStreams: {}, children, createEventStream }
+  const properties = {};
+  const eventStreams = {};
 
   const processAttributes = (attributes: Attributes) => attributes.forEach(attributeDescriptor => {
     if (Array.isArray(attributeDescriptor)) {
@@ -32,10 +38,10 @@ export function component(
       const { namespace, name, value } = <Attribute>attributeDescriptor
 
       if (namespace === undefined) {
-        args.properties[name] = value
+        properties[name] = value
       }
       else if (namespace === context.eventNamespaceName) {
-        args.eventStreams[name] = value
+        eventStreams[name] = value
       }
       else {
         throw new Error(`Unsupported component namespace '${namespace}'`)
@@ -45,5 +51,23 @@ export function component(
 
   processAttributes(attributes)
 
-  return ComponentFactory(args)
+  return (scope: StreamDomScope) => {
+    const createdEventStreams: Stream<any>[] = []
+
+    const nodeDescriptor = ComponentFactory({
+      properties,
+      eventStreams,
+      children,
+      createEventStream<T>() {
+        const eventStream = createEventStream<T>()
+        createdEventStreams.push(eventStream)
+        return eventStream
+      },
+      attachEventStream
+    })(scope)
+
+    createdEventStreams.forEach(bindEventStream)
+
+    return nodeDescriptor
+  }
 }

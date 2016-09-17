@@ -1,5 +1,5 @@
 import streamDom from 'stream-dom'
-import {createEventStream} from 'stream-dom/eventing'
+import { createEventStream, bindEventStream } from 'stream-dom/eventing'
 import domAssert from './domAssert'
 import {assert} from 'chai'
 import {subject} from 'most-subject'
@@ -287,7 +287,14 @@ describe('stream-dom nodes', function () {
         ]
       })
 
-      const mountInfo = streamDom.mount(streamDomNodeInit, document.body)
+      const mountInfo = streamDom.mount(
+        scope => {
+          const descriptor = streamDomNodeInit(scope)
+          bindEventStream(click$)
+          return descriptor
+        },
+        document.body
+      )
 
       const promiseToReduce = click$.reduce(
         (eventTypes, event) => {

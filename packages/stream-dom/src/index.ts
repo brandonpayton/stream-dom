@@ -1,6 +1,6 @@
 import { mount } from './mount'
 import { element, text, InitializeElementNode, ElementDetails } from './nodes/dom'
-import { component, ComponentDetails } from './nodes/component'
+import { component, ComponentFactory, ComponentDetails } from './nodes/component'
 import { stream } from './nodes/stream'
 import { expression } from './nodes/expression'
 import { ChildDeclaration } from './nodes/node'
@@ -87,7 +87,7 @@ class StreamDom implements StreamDomContext {
     return stream(this, children$)
   }
 
-  component(ComponentFactory: Function, details: ComponentDetails) {
+  component(ComponentFactory: ComponentFactory, details: ComponentDetails) {
     return component(this, ComponentFactory, details)
   }
 
