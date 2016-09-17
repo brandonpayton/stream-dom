@@ -78,7 +78,7 @@ function setWithStream(
   { destroy$ }: StreamDomScope
 ) {
   isStream(valueOrStream)
-    ? valueOrStream.until(destroy$).observe(setter)
+    ? valueOrStream.skipRepeats().until(destroy$).observe(setter)
     : setter(valueOrStream)
 }
 
