@@ -93,6 +93,9 @@ function handleAttribute(
   setWithStream(value, setAttribute, scope)
 
   function setAttribute(effectiveValue: any) {
+    // Attributes with a no value are treated as boolean
+    effectiveValue === null && (effectiveValue = true)
+
     if (effectiveValue === true || effectiveValue === false) {
       value
         ? elementNode.setAttributeNS(namespaceUri, name, '')
