@@ -7,7 +7,7 @@ const bindProxySymbol = '@@stream-dom-proxy-bind'
 const attachedStreamsSymbol = '@@stream-dom-attached-streams'
 
 // TODO: Consider better name for this
-interface ConstructingStream extends Stream<any> {
+export interface ConstructingStream extends Stream<any> {
   // TS does not allow interfaces computed property names unless using built-in symbols,
   // so we have to duplicate the key here.
   '@@stream-dom-attached-streams'?: Stream<any>[];
