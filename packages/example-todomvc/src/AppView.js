@@ -1,20 +1,24 @@
-import { combine, merge } from 'most'
+import { combine, merge, just } from 'most'
 import { domEvent } from '@most/dom-event'
 import assign from 'lodash.assign'
 import keycode from 'keycode'
-import { createLocalStorageStream } from './most-local-storage'
 import { streamDom } from './stream-dom'
 
-export function AppView({
-  createEventStream
-}) {
-  const updateTodos$ = createEventStream()
-  const allTodos$ = createLocalStorageStream({
-    key: 'todomvc-todos',
-    update$: updateTodos$,
-    defaultValue: []
-  })
+import {
+  create as createTodo,
+  destroy as destroyTodo,
+  edit as editTodo,
+  toggle as toggleTodo,
+  toggleAll,
+  destroyAllCompleted
+} from './model/todo-actions'
 
+export function AppView({
+  properties: {
+    todos$: allTodos$,
+    action$
+  }
+}) {
   const locationHash$ = domEvent('hashchange', window)
     .map(() => location.hash)
     .startWith(location.hash)
@@ -36,14 +40,13 @@ export function AppView({
       <section class="todoapp">
         <header class="header">
           <h1>todos</h1>
-          <NewTodoTextBox todos$={todos$} updateTodos$={updateTodos$} />
+          <NewTodoTextBox action$={action$} />
         </header>
-        // This section should be hidden by default and shown when there are todos
         <section class="main">
-          <ToggleAllCheckbox id="toggle-all" todos$={todos$} updateTodos$={updateTodos$} />
-          <TodoList todos$={todos$} updateTodos$={updateTodos$} />
+          <ToggleAllCheckbox id="toggle-all" action$={action$} />
+          <TodoList todos$={todos$} action$={action$} />
         </section>
-        <TodosFooter todos$={todos$} updateTodos$={updateTodos$} />
+        <TodosFooter allTodos$={allTodos$} action$={action$} />
       </section>
       <footer class="info">
         <p>Double-click to edit a todo</p>
@@ -59,24 +62,27 @@ export function AppView({
 
 function NewTodoTextBox({
   properties: {
-    todos$,
-    updateTodos$
+    action$
   },
   createEventStream,
   attachEventStream
 }) {
   const keyPress$ = createEventStream()
-  const enterKeyPress$ = keyPress$.filter(e => e.keyCode === keycode('Enter'))
-  attachEventStream(
-    updateTodos$,
-    combine(
-      (todos, text) => todos.concat({ text, completed: false }),
-      todos$,
-      enterKeyPress$
-        .map(e => e.target.value.trim())
-        .filter(text => text.length > 0)
-    )
-  )
+  const newTodo$ = keyPress$
+    .filter(e => e.keyCode === keycode('Enter'))
+    .map(e => e.target.value.trim())
+    .filter(text => text.length > 0)
+
+  // const allWhitespace = /^\s*$/
+  // const newTodo$ = keyPress$
+  //   .filter(e => e.keyCode === keycode('Enter') && !allWhitespace.test(e.target.value))
+  //   .map(e => {
+  //     const value = e.target.value.trim()
+  //     e.target.value = ''
+  //     return value
+  //   })
+
+  attachEventStream(action$, newTodo$.map(createTodo))
 
   return <input class="new-todo" placeholder="What needs to be done?" autofocus
     e:keypress={keyPress$}
@@ -86,8 +92,7 @@ function NewTodoTextBox({
 function ToggleAllCheckbox({
   properties: {
     id,
-    todos$,
-    updateTodos$
+    action$
   },
   createEventStream,
   attachEventStream
@@ -95,12 +100,8 @@ function ToggleAllCheckbox({
   const change$ = createEventStream()
 
   attachEventStream(
-    updateTodos$,
-    combine(
-      (todos, completed) => todos.map(todo => Object.assign({}, todo, { completed })),
-      todos$,
-      change$.map(e => e.target.checked)
-    )
+    action$,
+    change$.map(e => toggleAll(e.target.checked))
   )
 
   return (
@@ -112,13 +113,15 @@ function ToggleAllCheckbox({
 }
 
 function TodoList({
-  properties: { todos$, updateTodos$ }
+  properties: { todos$, action$ }
 }) {
   return (
     <ul class="todo-list">
-      {todos$.map(
-        (todo, i) => <Todo todo={todo} index={i} todos$={todos$} updateTodos$={updateTodos$} />
-      )}
+      {todos$.map(todos => {
+        return todos.map(
+          (todo, i) => <Todo todo={todo} index={i} action$={action$} />
+        )
+      })}
     </ul>
   )
 }
@@ -127,9 +130,7 @@ function Todo({
   // TODO: Implement and use object spread
   properties: {
     todo,
-    index,
-    todos$,
-    updateTodos$
+    action$
   },
   createEventStream,
   attachEventStream
@@ -139,51 +140,25 @@ function Todo({
 
   // TODO: Handle edit, destruction, and completion with event delegation
 
-  const { text, completed } = todo
+  const { id, text, completed } = todo
 
   // TODO: Consider action-based architecture
   const destroyClick$ = createEventStream()
-  attachEventStream(updateTodos$, combine(
-    (todos, index) => todos.slice().splice(index, 1),
-    todos$,
-    destroyClick$.map(() => index)
-  ))
+  attachEventStream(action$, destroyClick$.map(() => destroyTodo(id)))
 
   const completedChange$ = createEventStream()
-  attachEventStream(updateTodos$, combine(
-    (todos, completed) => {
-      const newTodos = todos.slice()
-      newTodos[index] =  assign({}, todo, { completed })
-      return newTodos
-    },
-    todos$,
-    completedChange$.map(e => e.target.checked)
+  attachEventStream(action$, completedChange$.map(
+    e => toggleTodo(id, e.target.checked)
   ))
 
   const doubleClick$ = createEventStream()
   const blur$ = createEventStream()
-  const keyPress$ = createEventStream()
-  const enterKeyPress$ = keyPress$.filter(e => e.keyCode === keycode('Enter'))
-  const escapeKeyPress$ = keyPress$.filter(e => e.keyCode === keycode('Escape'))
+  const keyDown$ = createEventStream()
+  const enterKeyDown$ = keyDown$.filter(e => e.keyCode === keycode('Enter'))
+  const abortEdit$ = keyDown$.filter(e => e.keyCode === keycode('Escape'))
 
-  const commitEdit$ = merge(blur$, enterKeyPress$).map(e => e.target.value)
-  const abortEdit$ = escapeKeyPress$.const()
-
-  attachEventStream(updateTodos$, combine(
-    (todos, text) => {
-      const newTodos = todos.slice()
-      const trimmedText = text.trim()
-      if (trimmedText.length === 0) {
-        newTodos.splice(index, 1)
-      }
-      else {
-        newTodos[index] = assign({}, todo, { text })
-      }
-      return newTodos
-    },
-    todos$,
-    commitEdit$
-  ))
+  const commitEdit$ = merge(blur$, enterKeyDown$).map(e => e.target.value)
+  attachEventStream(action$, commitEdit$.map(text => editTodo(id, text)))
 
   const editing$ = merge(
       doubleClick$.map(() => true),
@@ -214,7 +189,7 @@ function Todo({
       </div>
       <input class="edit" value={text}
         e:blur={blur$}
-        e:keypress={keyPress$}
+        e:keydown={keyDown$}
         />
     </li>
   )
@@ -222,17 +197,16 @@ function Todo({
 
 function TodosFooter({
   properties: {
-    todos$,
-    updateTodos$
+    allTodos$,
+    action$
   }
 }) {
-  const footerStyle$ = todos$.map(conditionalVisibility(todos => todos.length > 0))
+  const activeCount$ = allTodos$.filter(todo => !todo.completed).map(todos => todos.length)
+  const footerStyle$ = allTodos$.map(conditionalVisibility(allTodos => allTodos.length > 0))
 
   return (
     <footer class="footer" style={footerStyle$}>
-      // This should be `0 items left` by default
-      <span class="todo-count"><strong>0</strong> item left</span>
-      // Remove this if you don't implement routing
+      <span class="todo-count"><strong>{activeCount$}</strong> items left</span>
       <ul class="filters">
         <li>
           <a class="selected" href="#/">All</a>
@@ -244,21 +218,18 @@ function TodosFooter({
           <a href="#/completed">Completed</a>
         </li>
       </ul>
-      <ClearCompletedButton todos$={todos$} updateTodos$={updateTodos$} />
+      <ClearCompletedButton action$={action$} />
     </footer>
   )
 }
 
 function ClearCompletedButton({
-  properties: { todos$, updateTodos$ },
+  properties: { action$ },
   createEventStream,
   attachEventStream
 }) {
   const click$ = createEventStream()
-  attachEventStream(
-    updateTodos$,
-    click$.sample(todos$).map(todos => todos.filter(todo => todo.completed))
-  )
+  attachEventStream(action$, click$.map(() => destroyAllCompleted()))
 
   return <button class="clear-completed"
     e:click={click$}
