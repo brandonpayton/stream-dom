@@ -1,5 +1,5 @@
 import streamDom from 'stream-dom'
-import { createEventStream, bindEventStream } from 'stream-dom/eventing'
+import { createEventStream } from 'stream-dom/eventing'
 import domAssert from './domAssert'
 import {assert} from 'chai'
 import {subject} from 'most-subject'
@@ -287,14 +287,7 @@ describe('stream-dom nodes', function () {
         ]
       })
 
-      const mountInfo = streamDom.mount(
-        scope => {
-          const descriptor = streamDomNodeInit(scope)
-          bindEventStream(click$)
-          return descriptor
-        },
-        document.body
-      )
+      const mountInfo = streamDom.mount(streamDomNodeInit, document.body)
 
       const promiseToReduce = click$.reduce(
         (eventTypes, event) => {
@@ -310,7 +303,10 @@ describe('stream-dom nodes', function () {
       const {domNode} = mountInfo.nodeDescriptor
       domNode.click()
 
-      mountInfo.dispose()
+      setTimeout(() => {
+        click$.complete()
+        mountInfo.dispose()
+      })
 
       return promiseToReduce
     })
@@ -451,6 +447,8 @@ describe('stream-dom nodes', function () {
 
   // TODO: Test components
 
+  // TODO: Test stream with single, non-array child
+
   // TODO: mixed text and element dynamic children
 
   // TODO: Support replacing all children
@@ -470,6 +468,8 @@ describe('stream-dom nodes', function () {
    */
 
   // TODO: Properties always applied after attributes
+
+  // TODO: Test error handling
 
   describe('components', function () {
     it('creates an element encapsulated by a component factory function', function () {
@@ -495,7 +495,7 @@ describe('mount', function () {
     testContainerNode.innerHTML = ''
   })
 
-  it('inserts and removes an element from the DOM', function () {
+  it('inserts and removes an element from the DOM', function (done) {
     const expectedTagName = 'section'
     const streamDomNodeInit = streamDom.element(expectedTagName)
 
@@ -507,7 +507,16 @@ describe('mount', function () {
 
     mountInfo.dispose()
 
-    assert.strictEqual(domNode.parentNode, null, 'mount `dispose` removes the node from the DOM')
+    // TODO: Remove this when no longer delaying all proxied streams as a workaround
+    setTimeout(() => {
+      try {
+        assert.strictEqual(domNode.parentNode, null, 'mount `dispose` removes the node from the DOM')
+        done()
+      }
+      catch (err) {
+        done(err)
+      }
+    }, 10)
   })
 
   it('notifies an element when it is mounted and when it is diposed', () => {

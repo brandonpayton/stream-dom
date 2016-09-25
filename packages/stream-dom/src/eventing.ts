@@ -1,39 +1,23 @@
 import { Stream, merge } from 'most'
-import { proxy } from 'most-proxy'
+import { Subject, subject, holdSubject } from 'most-subject'
+
+export type Subject<T> = Subject<T>
 
 export type DomEvent = Event | CustomEvent | { target: Element }
 
-const bindProxySymbol = '@@stream-dom-proxy-bind'
-const attachedStreamsSymbol = '@@stream-dom-attached-streams'
-
-// TODO: Consider better name for this
-export interface ConstructingStream extends Stream<any> {
-  // TS does not allow interfaces computed property names unless using built-in symbols,
-  // so we have to duplicate the key here.
-  '@@stream-dom-attached-streams'?: Stream<any>[];
+export function createEventStream<T>(): Subject<T> {
+  return subject<T>()
 }
 
-export function createEventStream<T>(): Stream<T> {
-  const {attach, stream} = proxy<T>()
-  stream[bindProxySymbol] = attach
-  return stream
+export function createMemoryEventStream<T>(): Subject<T> {
+  return holdSubject<T>()
 }
 
 // TODO: Consider better name for this
-export function attachEventStream(to$: ConstructingStream, from$: Stream<any>): void {
-  const attachedStreams = to$[attachedStreamsSymbol] || (to$[attachedStreamsSymbol] = [])
-  attachedStreams.push(from$)
-}
-
-export function bindEventStream<T>(proxy$: Stream<T>): void {
-  const attachedStreams = proxy$[attachedStreamsSymbol]
-  proxy$[attachedStreamsSymbol] = null
-
-  if (attachedStreams.length > 0) {
-    proxy$[bindProxySymbol](
-      attachedStreams.length === 1 ? attachedStreams[0] : merge(...attachedStreams)
-    )
-  }
+export function attachEventStream<T>(to$: Subject<T>, from$: Stream<T>): void {
+  from$
+    .observe(e => to$.next(e))
+    .then(undefined, error => console.error(error))
 }
 
 interface CustomEventInit {

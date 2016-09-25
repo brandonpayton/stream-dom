@@ -1,5 +1,6 @@
 import { merge, Stream } from 'most'
 
+import { expression } from './expression'
 import { initializeChildren } from './util'
 
 import { DomContainerNode, ChildDeclaration, InitializeNode, NodeDescriptor } from './node'
@@ -7,7 +8,7 @@ import { StreamDomContext, StreamDomScope } from '../index'
 
 import symbolObservable from 'symbol-observable'
 
-export function stream(context: StreamDomContext, children$: Stream<ChildDeclaration[]>) : InitializeNode {
+export function stream(context: StreamDomContext, children$: Stream<ChildDeclaration>) : InitializeNode {
   return (scope: StreamDomScope) => {
     const { document } = context
     const { mounted$, destroy$ } = scope
@@ -19,11 +20,10 @@ export function stream(context: StreamDomContext, children$: Stream<ChildDeclara
       .map(children => {
         const childScope = {
           parentNamespaceUri: scope.parentNamespaceUri,
-          // TODO: Remove use of delay() workaround for most-proxy sync dispatch during attach
-          mounted$: mounted$.delay(1).multicast(),
+          mounted$: mounted$,
           destroy$: merge<any>(children$, destroy$).take(1).multicast()
         }
-        return initializeChildren(children, childScope)
+        return initializeChildren([ expression(context, children) ], childScope)
       })
       .tap(childDescriptors => {
         const { document, sharedRange } = context
@@ -82,5 +82,5 @@ class StreamNodeDescriptor {
 }
 
 export function isStream(candidate: any): boolean {
-  return !!candidate[symbolObservable]
+  return candidate && !!candidate[symbolObservable]
 }

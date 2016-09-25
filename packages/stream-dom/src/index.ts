@@ -3,7 +3,7 @@ import { element, text, InitializeElementNode, ElementDetails } from './nodes/do
 import { component, ComponentFactory, ComponentDetails } from './nodes/component'
 import { stream } from './nodes/stream'
 import { expression } from './nodes/expression'
-import { ChildDeclaration } from './nodes/node'
+import { ChildDeclaration, InitializeNode } from './nodes/node'
 import { DomEvent } from './eventing'
 
 import { Stream } from 'most'
@@ -18,13 +18,13 @@ export interface StreamDomContext {
   propertyNamespaceName: string
   getNamespaceUri(namespaceName: string): string
   defaultNamespaceUri: string
-  sharedRange: Range;
+  sharedRange: Range
 }
 
 export interface StreamDomScope {
   parentNamespaceUri: string,
-  mounted$: Stream<DomEvent>,
-  destroy$: Stream<DomEvent>
+  mounted$: Stream<null>,
+  destroy$: Stream<null>
 }
 
 export const defaultNamespaceUriMap: UriMap = {
@@ -83,7 +83,7 @@ class StreamDom implements StreamDomContext {
     return element(this, name, details)
   }
 
-  stream(children$: Stream<ChildDeclaration[]>) {
+  stream(children$: Stream<ChildDeclaration>) {
     return stream(this, children$)
   }
 

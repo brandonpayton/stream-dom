@@ -1,6 +1,6 @@
 import { Stream } from 'most'
 
-import { createEventStream, attachEventStream, bindEventStream, ConstructingStream } from '../eventing'
+import { createEventStream, attachEventStream, Subject } from '../eventing'
 
 import { StreamDomContext, StreamDomScope } from '../index'
 import { Attributes, Attribute, InitializeNode, NodeDescriptor } from './node'
@@ -63,12 +63,10 @@ export function component(
         createdEventStreams.push(eventStream)
         return eventStream
       },
-      attachEventStream<T>(to$: ConstructingStream, from$: Stream<any>) {
+      attachEventStream<T>(to$: Subject<T>, from$: Stream<any>) {
         attachEventStream(to$, from$.until(scope.destroy$))
       }
     })(scope)
-
-    createdEventStreams.forEach(bindEventStream)
 
     return nodeDescriptor
   }
