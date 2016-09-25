@@ -1,4 +1,4 @@
-import { createEventStream, attachEventStream } from 'stream-dom/eventing'
+import { createEventStream, attachEventStream } from '../lib/eventing'
 import { click } from '@most/dom-event'
 import { assert } from 'chai'
 

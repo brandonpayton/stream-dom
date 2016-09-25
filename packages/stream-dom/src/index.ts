@@ -4,7 +4,7 @@ import { component, ComponentFactory, ComponentDetails } from './nodes/component
 import { stream } from './nodes/stream'
 import { expression } from './nodes/expression'
 import { ChildDeclaration, InitializeNode } from './nodes/node'
-import { DomEvent } from './eventing'
+import { DomEvent, createEventStream, attachEventStream } from './eventing'
 
 import { Stream } from 'most'
 
@@ -103,3 +103,6 @@ export function configureStreamDom(config = {}) {
 const streamDom = configureStreamDom()
 
 export default streamDom
+
+export { createEventStream, attachEventStream }
+
