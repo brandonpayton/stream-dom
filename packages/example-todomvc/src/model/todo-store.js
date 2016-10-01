@@ -1,4 +1,4 @@
-import { localStorageStream } from '../util/local-storage-stream'
+import { localStorageStream } from './local-storage-stream'
 import { createEventStream, attachEventStream } from 'stream-dom'
 import assign from 'lodash.assign'
 import uuid from 'uuid'
@@ -12,7 +12,7 @@ import {
   TODO_DESTROY_ALL_COMPLETED
 } from './todo-actions'
 
-import { actionHandler } from '../util/action-handler'
+import { actionHandler } from './action-handler'
 
 export function todoStore(key, action$) {
   const updatedTodos$ = createEventStream()
