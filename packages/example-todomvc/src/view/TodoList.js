@@ -56,7 +56,10 @@ function Todo({
   const blur$ = createEventStream()
   const keyDown$ = createEventStream()
   const enterKeyDown$ = keyDown$.filter(isCommitEdit)
-  const abortEdit$ = keyDown$.filter(e => e.keyCode === keycode('Escape'))
+  const abortEdit$ = merge(
+    keyDown$.filter(e => e.keyCode === keycode('Escape')),
+    blur$
+  )
 
   const editing$ =
     merge(
