@@ -9,7 +9,7 @@ import {
 } from './eventing'
 
 import { StreamDomContext, StreamDomScope } from './index'
-import { InitializeElementNode } from './nodes/dom'
+import { InitializeElementNode, ElementNodeDescriptor } from './nodes/dom'
 
 export function mount(
   context: StreamDomContext,

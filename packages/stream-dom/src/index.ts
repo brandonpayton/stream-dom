@@ -1,14 +1,14 @@
 import { mount } from './mount'
-import { element, text, InitializeElementNode, ElementDetails } from './nodes/dom'
+import { element, text, InitializeElementNode, ElementDetails, ElementNodeDescriptor } from './nodes/dom'
 import { component, ComponentFactory, ComponentDetails } from './nodes/component'
 import { stream } from './nodes/stream'
 import { expression } from './nodes/expression'
-import { ChildDeclaration, InitializeNode } from './nodes/node'
+import { ChildDeclaration, InitializeNode, NodeDescriptor } from './nodes/node'
 import { DomEvent, createEventStream, attachEventStream } from './eventing'
 
 import { Stream } from 'most'
 
-interface UriMap {
+export interface UriMap {
   [s: string]: string
 }
 
@@ -33,7 +33,7 @@ export const defaultNamespaceUriMap: UriMap = {
   xlink: 'http://www.w3.org/1999/xlink'
 }
 
-class StreamDom implements StreamDomContext {
+export class StreamDom implements StreamDomContext {
   document: HTMLDocument
   eventNamespaceName: string
   propertyNamespaceName: string

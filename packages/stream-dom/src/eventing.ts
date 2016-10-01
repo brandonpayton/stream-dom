@@ -21,7 +21,7 @@ export function attachEventStream<T>(to$: Subject<T>, from$: Stream<T>): void {
     .then(undefined, error => console.error(error))
 }
 
-interface CustomEventInit {
+export interface CustomEventInit {
   bubbles?: boolean,
   cancelable?: boolean,
   detail?: Object
