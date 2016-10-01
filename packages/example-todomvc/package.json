@@ -4,7 +4,9 @@
   "version": "0.0.0",
   "description": "TodoMVC using stream-dom",
   "main": "js/app.js",
-  "scripts": {},
+  "scripts": {
+    "start": "webpack-dev-server"
+  },
   "author": "Brandon Payton <brandon@happycode.net>",
   "license": "MIT",
   "devDependencies": {
