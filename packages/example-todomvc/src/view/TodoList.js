@@ -53,6 +53,9 @@ function Todo({
   const { id, text, completed } = todo
 
   const doubleClick$ = createEventStream()
+  // Ignore double clicks on the edit field to avoid interfering with
+  // double clicking to select a word in the input.
+  const doubleClickForEdit$ = doubleClick$.filter(e => !e.target.matches('.edit'))
   const blur$ = createEventStream()
   const keyDown$ = createEventStream()
   const enterKeyDown$ = keyDown$.filter(isCommitEdit)
@@ -63,10 +66,9 @@ function Todo({
 
   const editing$ =
     merge(
-      doubleClick$.map(() => true),
-      merge(enterKeyDown$, abortEdit$).map(() => false)
+      doubleClickForEdit$.constant(true),
+      merge(enterKeyDown$, abortEdit$).constant(false)
     )
-    .skipRepeats()
     .startWith(false)
 
   const class$ = editing$.map(editing => {
@@ -75,7 +77,7 @@ function Todo({
     return `todo ${editingClass} ${completedClass}`
   })
 
-  doubleClick$.observe(({ currentTarget }) => setTimeout(() => {
+  doubleClickForEdit$.observe(({ currentTarget }) => setTimeout(() => {
     const inputNode = currentTarget.querySelector('.edit')
     inputNode.focus()
     inputNode.selectionStart = inputNode.value.length
