@@ -5,10 +5,6 @@ import { App } from './view/App'
 import { streamDom } from './stream-dom'
 import { todoStore } from './model/todo-store'
 
-// TODO: Fix style-loader config to avoid referencing node_modules
-import 'style!raw!../node_modules/todomvc-common/base.css'
-import 'style!raw!../node_modules/todomvc-app-css/index.css'
-
 const action$ = createEventStream()
 const todos$ = todoStore('stream-dom-todomvc-todos', action$)
 
