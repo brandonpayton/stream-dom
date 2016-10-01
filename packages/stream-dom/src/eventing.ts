@@ -5,7 +5,6 @@ export type Subject<T> = Subject<T>
 
 export type DomEvent = Event | CustomEvent | { target: Element }
 
-// TODO: Consider exposing that these are subjects
 export function createEventStream<T>(): Subject<T> {
   return subject<T>()
 }
