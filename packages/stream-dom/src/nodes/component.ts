@@ -61,10 +61,14 @@ export function component(
       createEventStream<T>() {
         const eventStream = createEventStream<T>()
         createdEventStreams.push(eventStream)
+
+        // Ensure stream does not live longer than the component
+        scope.destroy$.observe(() => eventStream.complete(null))
+
         return eventStream
       },
       attachEventStream<T>(to$: Subject<T>, from$: Stream<any>) {
-        attachEventStream(to$, from$.until(scope.destroy$))
+        attachEventStream(to$, from$)
       }
     })(scope)
 
