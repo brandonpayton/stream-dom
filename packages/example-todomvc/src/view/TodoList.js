@@ -75,6 +75,12 @@ function Todo({
     return `todo ${editingClass} ${completedClass}`
   })
 
+  doubleClick$.observe(({ currentTarget }) => setTimeout(() => {
+    const inputNode = currentTarget.querySelector('.edit')
+    inputNode.focus()
+    inputNode.selectionStart = inputNode.value.length
+  }))
+
   return (
     <li id={id} class={class$} e:dblclick={doubleClick$}>
       <div class="view">
