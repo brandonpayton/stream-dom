@@ -53,11 +53,13 @@ function Todo({
   const { id, text, completed } = todo
 
   const doubleClick$ = createEventStream()
-  // Ignore double clicks on the edit field to avoid interfering with
-  // double clicking to select a word in the input.
-  const doubleClickForEdit$ = doubleClick$.filter(e => !e.target.matches('.edit'))
   const blur$ = createEventStream()
   const keyDown$ = createEventStream()
+
+  // Ignore double clicks on the edit field to avoid interfering with
+  // double clicking to select a word in the input.
+  const doubleClickForEdit$ = doubleClick$.filter(e => e.target.matches('label'))
+
   const enterKeyDown$ = keyDown$.filter(isCommitEdit)
   const abortEdit$ = merge(
     keyDown$.filter(e => e.keyCode === keycode('Escape')),
