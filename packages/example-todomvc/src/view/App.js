@@ -40,7 +40,9 @@ export function App({
   const changeToggleAll$ = createEventStream()
   attachEventStream(todoAction, changeToggleAll$.map(e => actions.toggleAll(e.target.checked)))
 
-  const activeCount$ = allTodos$.filter(todo => !todo.completed).map(todos => todos.length)
+  const activeCount$ = allTodos$.map(
+    todos => todos.reduce((count, t) => count + (t.completed ? 0 : 1), 0)
+  )
   const footerStyle$ = allTodos$.map(conditionalVisibility(allTodos => allTodos.length > 0))
 
   const clickClearCompleted$ = createEventStream()
