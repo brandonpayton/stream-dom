@@ -7,7 +7,7 @@ export function actionHandler(handlerMap) {
       return handlerMap.default(model, action)
     }
     else {
-      // Without a default handler, allow unhandled actions to pass silently
+      return model
     }
   }
 }
