@@ -1,4 +1,1 @@
-streamDom.component(a.b.c.d, {
-  attributes: [],
-  children: []
-});
+h(a.b.c.d);

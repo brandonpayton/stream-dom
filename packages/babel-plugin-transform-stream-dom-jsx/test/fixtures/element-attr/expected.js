@@ -1,9 +1,8 @@
-streamDom.element("div", {
-  attributes: [
-    { name: "id", value: "expected-id" },
-    { name: "class", value: "expected-class" },
-    { name: "data-attrib", value: "test" },
-    { name: "boolean-attribute", value: true }
-  ],
-  children: []
+h("div", {
+  attrs: {
+    id: "expected-id",
+    "class": "expected-class",
+    "data-attrib": "test",
+    "boolean-attribute": true
+  }
 });
