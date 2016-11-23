@@ -1,26 +1,18 @@
-import { combine } from 'most'
-import keycode from 'keycode'
+import { combine, merge } from 'most'
 
 import { streamDom } from '../stream-dom'
 import * as actions from '../model/todo-actions'
 import { TodoList } from './TodoList'
 
-export function App({
-  properties: {
-    todos$: allTodos$,
-    locationHash$,
-    filter$,
-    filterRoutes: {
-      hashShowActive,
-      hashShowCompleted,
-      hashDefault
-    }
-  },
-  eventStreams: {
-    todoAction
-  },
-  createEventStream,
-  attachEventStream
+export function App ({
+  todos$: allTodos$,
+  locationHash$,
+  filter$,
+  filterRoutes: {
+    hashShowActive,
+    hashShowCompleted,
+    hashDefault
+  }
 }) {
   const todos$ = combine(
     (allTodos, filter) => allTodos.filter(filter),
@@ -28,68 +20,70 @@ export function App({
     filter$
   )
 
-  const keyPressNewTodo$ = createEventStream()
-  const newTodoEnter$ = keyPressNewTodo$.filter(e => e.keyCode === keycode('Enter'))
-  attachEventStream(todoAction, newTodoEnter$
-    .map(e => e.target.value.trim())
-    .filter(text => text.length > 0)
-    .map(text => actions.create(text))
-  )
-  newTodoEnter$.observe(e => e.target.value = '')
-
-  const changeToggleAll$ = createEventStream()
-  attachEventStream(todoAction, changeToggleAll$.map(e => actions.toggleAll(e.target.checked)))
-
   const activeCount$ = allTodos$.map(
     todos => todos.reduce((count, t) => count + (t.completed ? 0 : 1), 0)
   )
-  const footerStyle$ = allTodos$.map(conditionalVisibility(allTodos => allTodos.length > 0))
 
-  const clickClearCompleted$ = createEventStream()
-  attachEventStream(todoAction, clickClearCompleted$.map(() => actions.destroyAllCompleted()))
-
-  return (
-    <div>
-      <section class="todoapp">
-        <header class="header">
-          <h1>todos</h1>
-          <input class="new-todo" placeholder="What needs to be done?" autofocus
-            e:keypress={keyPressNewTodo$}
-            />
-        </header>
-        <section class="main">
-          <input id="toggle-all" class="toggle-all" type="checkbox" e:change={changeToggleAll$} />
-          <label for="toggle-all">Mark all as complete</label>
-          <TodoList todos$={todos$} e:todoAction={todoAction} />
+  return component(
+    h => (
+      <div>
+        <section class="todo-app">
+          <header class="header">
+            <h1>todos</h1>
+            <input node-name="newTodo" class="new-todo" placeholder="What needs to be done?" autofocus={true} />
+          </header>,
+          <section class="main">
+            <input node-name="toggleAll" id="toggle-all" class="toggle-all" type="checkbox" />
+            <label for="toggle-all">Mark all as complete</label>
+            <TodoList node-name="todoList" todos$={todos$} />
+          </section>
+          <footer class="footer" style={allTodos$.map(todos => todos.length === 0 ? 'display: none' : '')}>
+            <span class="todo-count"><strong>{activeCount$}</strong> items left</span>
+            <ul class="filters">
+              <FilterListItem hash={hashDefault} locationHash$={locationHash$} label="All" />
+              <FilterListItem hash={hashShowActive} locationHash$={locationHash$} label="Active" />
+              <FilterListItem hash={hashShowCompleted} locationHash$={locationHash$} label="Completed" />
+            </ul>
+            <button class="clear-completed">Clear completed</button>
+          </footer>
         </section>
-        <footer class="footer" style={footerStyle$}>
-          <span class="todo-count"><strong>{activeCount$}</strong> items left</span>
-          <ul class="filters">
-            <li>
-              <a href={hashDefault} class={locationHash$.map(selectedHash(hashDefault))}>All</a>
-            </li>
-            <li>
-              <a href={hashShowActive} class={locationHash$.map(selectedHash(hashShowActive))}>Active</a>
-            </li>
-            <li>
-              <a href={hashShowCompleted} class={locationHash$.map(selectedHash(hashShowCompleted))}>Completed</a>
-            </li>
-          </ul>
-          <button class="clear-completed" e:click={clickClearCompleted$}>Clear completed</button>
+        <footer class="info">
+          <p>Double-click to edit a todo</p>
+          <p>Created by <a href="https://github.com/brandonpayton">Brandon Payton</a></p>
         </footer>
-      </section>
-      <footer class="info">
-        <p>Double-click to edit a todo</p>
-        <p>Created by <a href="https://github.com/brandonpayton">Brandon Payton</a></p>
-      </footer>
-    </div>
+      </div>
+    ),
+    nodes => {
+      const { newTodo, toggleAll, clearCompleted, todoList } = nodes
+
+      return {
+        action$: merge(
+          newTodo.events.keypress
+            .filter(e => e.key === 'Enter')
+            .map(e => {
+              const text = e.target.value.trim()
+              e.target.value = ''
+              return text
+            })
+            .filter(text => text.length > 0)
+            .map(text => actions.create(text)),
+          toggleAll.events.change
+            .map(e => actions.toggleAll(e.target.checked)),
+          clearCompleted.events.click
+            .map(() => actions.destroyAllCompleted()),
+          todoList.events.edit$,
+          todoList.events.toggle$,
+          todoList.events.destroy$
+        )
+      }
+    }
   )
 }
 
-function conditionalVisibility(predicate) {
-  return x => predicate(x) ? '': 'display: none'
-}
+function FilterListItem({ hash, locationHash$, label }) {
+  const class$ = locationHash$.map(
+    currentHash => hash === currentHash ? 'selected' : ''
+  )
 
-function selectedHash(hash) {
-  return selectedHash => selectedHash === hash ? 'selected' : ''
+  return component(h => <a href={hash} class={class$}>{label}</a>)
 }

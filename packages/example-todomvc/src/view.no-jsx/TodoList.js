@@ -6,38 +6,39 @@ import { findSelectorTarget } from './findSelectorTarget'
 import * as actions from '../model/todo-actions'
 
 export function TodoList({ todos$ }) {
+  // Using a subject to resolve a circular dependency on editing ID
   const editingId$ = subject()
 
   const todoUi = ({ id, text, completed = false }) => {
-    const classes$ = editingId$.map(editingId => [ 'todo' ].concat(
-      id === editingId ? 'editing' : [],
-      completed ? 'completed' : []
-    ).join(' '))
-
-    return component(h => (
-      <li id={id} class={classes$}>
-        <div class="view">
-          <input class="toggle" type="checkbox" checked={completed} />
-          <label>{ text }</label>,
-          <button class="destroy" />
-        </div>
-        <input class="edit" value={text} />
-      </li>
-    ))
+    return component(h => h('li.todo', {
+      attrs: { id, completed },
+      classes: { editing: editingId$.map(editingId => id === editingId) }
+    }, [
+      h('div.view', [
+        h('input.toggle', {
+          attrs: { type: 'checkbox', checked: completed }
+        }),
+        h('label', [ text ]),
+        h('button.destroy')
+      ]),
+      h('input.edit', { attrs: { value: text } })
+    ]))
   }
 
   return component(
-    h => <ul node-name="root">{ todos$.map(todos => todos.map(todoUi)) }</ul>,
+    h => h('ul.todo-list', { nodeName: 'root' }, [
+      todos$.map(todos => todos.map(todoUi))
+    ]),
     nodes => {
       const { root } = nodes
 
       const findTodoSelectorTarget = findSelectorTarget('.todo')
 
-      const beginEdit$ = root.events.dblclick
+      const beginEdit$ = root.on('dblclick')
         .filter(e => e.target.matches('.todo label'))
         .filter(findTodoSelectorTarget)
 
-      const editFieldKeyDown$ = root.events.keydown
+      const editFieldKeyDown$ = root.on('keydown')
         .filter(e => e.target.matches('.edit'))
         .filter(findTodoSelectorTarget)
         .multicast()
@@ -48,14 +49,14 @@ export function TodoList({ todos$ }) {
 
       const abortEdit$ = merge(
         editFieldKeyDown$.filter(e => e.key === 'Escape'),
-        root.events.captureBlur.filter(e => e.target.matches('.edit'))
+        root.on('blur', { capture: true })
+          .filter(e => e.target.matches('.edit'))
       )
 
       merge(
         beginEdit$.map(e => e.selectorTarget.id),
-        merge(commitEdit$, abortEdit$).constant(null)
+        abortEdit$.constant(null)
       )
-      .skipRepeats()
       .observe(editingId => {
         editingId$.next(editingId)
 
@@ -72,11 +73,11 @@ export function TodoList({ todos$ }) {
           const trimmedText = e.target.value.trim()
           return trimmedText.length === 0 ? actions.destroy(id) : actions.edit(id, trimmedText)
         }),
-        toggle$: root.events.change
+        toggle$: root.on('change')
           .filter(e => e.target.matches('.toggle'))
           .filter(findTodoSelectorTarget)
           .map(e => actions.toggle(e.selectorTarget.id, e.target.checked)),
-        destroy$: root.events.click
+        destroy$: root.on('click')
           .filter(findTodoSelectorTarget)
           .filter(e => e.target.matches('.destroy'))
           .map(e => actions.destroy(e.selectorTarget.id))
@@ -84,4 +85,3 @@ export function TodoList({ todos$ }) {
     }
   )
 }
-

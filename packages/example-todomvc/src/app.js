@@ -24,9 +24,23 @@ const filter$ = locationHash$.map(hash => (
   () => true
 ))
 
-streamDom.mount(
-  <App todos$={todos$} e:todoAction={action$}
-    locationHash$={locationHash$} filterRoutes={filterRoutes} filter$={filter$}
-    />,
+mount(
+  streamDom(
+    h => h(App, { nodeName: 'app', props: { todos$, locationHash$, filterRoutes, filter$ } }),
+    nodes => {
+      nodes.app.events.action.observe(a => action$.next(a))
+    }
+  ),
+  document.body
+)
+
+const appProps = { todos$, locationHash$, filterRoutes, filter$ }
+mount(
+  streamDom(
+    h => <App node-name="app" {...appProps} />,
+    nodes => {
+      nodes.app.action.observe(a => action$.next(a))
+    }
+  ),
   document.body
 )
