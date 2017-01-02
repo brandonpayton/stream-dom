@@ -1,7 +1,7 @@
 import { parseTagExpression } from '../lib/h'
 import { assert } from 'chai'
 
-describe('h module', function () {
+describe('h', function () {
   describe('parseTagExpression', function () {
     it('parses simple tag name', function () {
       const { name } = parseTagExpression('div')

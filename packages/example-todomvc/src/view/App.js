@@ -71,9 +71,9 @@ export function App ({
             .map(e => actions.toggleAll(e.target.checked)),
           clearCompleted.events.click
             .map(() => actions.destroyAllCompleted()),
-          todoList.events.edit$,
-          todoList.events.toggle$,
-          todoList.events.destroy$
+          todoList.edit$,
+          todoList.toggle$,
+          todoList.destroy$
         )
       }
     }
@@ -85,5 +85,5 @@ function FilterListItem({ hash, locationHash$, label }) {
     currentHash => hash === currentHash ? 'selected' : ''
   )
 
-  return component(h => <a href={hash} class={class$}>{label}</a>)
+  return h => <a href={hash} class={class$}>{label}</a>
 }

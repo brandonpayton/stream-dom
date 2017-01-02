@@ -1,20 +1,16 @@
-const path = require('path')
-
 module.exports.createBaseConfig = function createBaseConfig(config) {
   return {
     singleRun: true,
 
     files: [
-      '../node_modules/babel-polyfill/browser.js',
-      './index.js',
-      './eventing.js'
+      'node_modules/babel-polyfill/browser.js',
+      'test/**/*.js'
     ],
 
     frameworks: [ 'mocha' ],
 
     preprocessors: {
-      './index.js': [ 'webpack', 'sourcemap' ],
-      './eventing.js': [ 'webpack', 'sourcemap' ]
+      'test/**/*.js': [ 'webpack', 'sourcemap' ]
     },
 
     logLevel: config.LOG_INFO,
@@ -28,7 +24,10 @@ module.exports.createBaseConfig = function createBaseConfig(config) {
         loaders: [{
           test: /\.js$/,
           loader: 'babel',
-          include: [ path.normalize(`${__dirname}/../test`) ]
+          include: [ `${__dirname}/test`, `${__dirname}/test-util}` ],
+          query: {
+            presets: [ 'es2015', 'es2016' ]
+          }
         }]
       },
       resolve: {
@@ -37,7 +36,8 @@ module.exports.createBaseConfig = function createBaseConfig(config) {
           'node_modules'
         ],
         alias: {
-          'stream-dom': path.normalize(`${__dirname}/../lib`)
+          'stream-dom': `${__dirname}/lib`,
+          'test-util': `${__dirname}/test-util`
         },
         extensions: [ '', '.js' ]
       }

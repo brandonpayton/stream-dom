@@ -14,9 +14,9 @@
     "prebuild": "npm run clean && typings install",
     "build": "tsc",
     "pretest": "npm run build",
-    "test": "karma start test/karma.config.comprehensive.js",
+    "test": "karma start karma.config.comprehensive.js",
     "pretest:local": "npm run pretest",
-    "test:local": "karma start test/karma.config.local.js"
+    "test:local": "karma start karma.config.local.js"
   },
   "repository": {
     "type": "git",

@@ -1,6 +1,6 @@
-import streamDom from '..'
-import { createEventStream } from '../lib/eventing'
-import domAssert from './domAssert'
+import streamDom from 'stream-dom'
+import { createEventStream } from 'stream-dom/eventing'
+import domAssert from 'test-util/dom-assert'
 import {assert} from 'chai'
 import {subject} from 'most-subject'
 
