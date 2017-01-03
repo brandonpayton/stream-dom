@@ -1,51 +1,44 @@
-import { merge, Stream } from 'most'
+import { merge } from 'most'
+import symbolObservable from 'symbol-observable'
+
 import { DoublyLinkedList, Node as ListNode } from '../util/doubly-linked-list'
 
+import { NodeDeclaration } from './node'
 import { expression } from './expression'
 import { initializeChildren } from './util'
 
-import { DomContainerNode, ChildDeclaration, InitializeNode, NodeDescriptor } from './node'
-import { StreamDomContext, StreamDomScope } from '../index'
+function stream(manageContent, config, scope, input$) {
+  const { document } = scope
+  const domStartNode = document.createComment('')
+  const domEndNode = document.createComment('')
 
-import symbolObservable from 'symbol-observable'
+  const content$ = manageContent(config, scope, domEndNode, input$)
+    .until(scope.destroy$)
+    .multicast()
+  content$.drain()
 
-function stream(manageContent, context: StreamDomContext, input$: Stream<ChildDeclaration>) : InitializeNode {
-  return (scope: StreamDomScope) => {
-    const { document } = context
-    const domStartNode = document.createComment('')
-    const domEndNode = document.createComment('')
-    const contentScope = Object.assign(Object.create(scope), { domStartNode, domEndNode })
-
-    const content$ = manageContent(context, scope, input$)
-      .until(scope.destroy$)
-      .multicast()
-    content$.drain()
-
-    return new StreamNodeDescriptor(
-      context.sharedRange,
-      domStartNode,
-      domEndNode,
-      content$
-    )
-  }
+  return new StreamNodeDescriptor(
+    config.sharedRange,
+    domStartNode,
+    domEndNode,
+    content$
+  )
 }
 
-export function replacementStream(context, input$) {
-  return stream(replaceOnContentEvent, context, input$)
+export function replacementStream(config, scope, input$) {
+  return stream(replaceOnContentEvent, config, scope, input$)
 
-  function replaceOnContentEvent (context, scope, children$) {
-    const { mounted$, destroy$ } = scope
+  function replaceOnContentEvent (config, scope, domStartNode, domEndNode, children$) {
     return children$.map(children => {
-      const childScope = {
-        parentNamespaceUri: scope.parentNamespaceUri,
-        mounted$: mounted$,
-        destroy$: merge<any>(children$, destroy$).take(1).multicast()
-      }
-      return initializeChildren([ expression(context, children) ], childScope)
+      const childScope = Object.assign({}, scope, {
+        destroy$: merge(children$, scope.destroy$).take(1).multicast()
+      })
+      return initializeChildren(config, childScope, [
+        new NodeDeclaration(expression, children)
+      ])
     })
     .tap(childDescriptors => {
-      const { document, sharedRange } = context
-      const { domStartNode, domEndNode } = scope
+      const { document, sharedRange } = scope
 
       const fragment = document.createDocumentFragment()
       childDescriptors.forEach(childDescriptor => childDescriptor.insert(fragment))
@@ -58,13 +51,10 @@ export function replacementStream(context, input$) {
   }
 }
 
-export function orderedListStream (context, getKey, renderItemStream, list$) {
-  return stream(updateListOnContentEvent, context, list$)
+export function orderedListStream (config, scope, getKey, renderItemStream, list$) {
+  return stream(updateListOnContentEvent, config, scope, list$)
 
-  function updateListOnContentEvent(context, scope, list$) {
-    const { sharedRange } = context
-    const { domStartNode, domEndNode } = scope
-
+  function updateListOnContentEvent(config, scope, domStartNode, domEndNode, list$) {
     const update$ = list$.map(itemList => {
       const itemMap = itemList.reduce(
         (map, item) => map.set(getKey(item), item),
@@ -152,26 +142,16 @@ export function orderedListStream (context, getKey, renderItemStream, list$) {
 }
 
 class StreamNodeDescriptor {
-  sharedRange: Range
-  domStartNode: Node
-  domEndNode: Node
-  childDescriptors$: Stream<NodeDescriptor[]>
-
   get type() { return 'stream' }
 
-  constructor(
-    sharedRange: Range,
-    domStartNode: Node,
-    domEndNode: Node,
-    childDescriptors$: Stream<NodeDescriptor[]>
-  ) {
+  constructor(sharedRange, domStartNode, domEndNode, childDescriptors$) {
     this.sharedRange = sharedRange
     this.domStartNode = domStartNode
     this.domEndNode = domEndNode
     this.childDescriptors$ = childDescriptors$
   }
 
-  insert(domParentNode: DomContainerNode, domBeforeNode: Node = null) {
+  insert(domParentNode, domBeforeNode = null) {
     const { domStartNode, domEndNode } = this
 
     if (domStartNode.parentNode === null) {
@@ -193,6 +173,6 @@ class StreamNodeDescriptor {
   }
 }
 
-export function isStream(candidate: any): boolean {
+export function isStream(candidate) {
   return candidate && !!candidate[symbolObservable]
 }
