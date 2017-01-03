@@ -1,6 +1,5 @@
-import { NodeDescriptor } from './node'
+import { NodeDescriptor, createNodeDescriptors } from './node'
 import { isStream } from './stream'
-import { initializeChildren } from './util'
 
 export function element(
   config,

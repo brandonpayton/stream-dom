@@ -55,3 +55,21 @@ export class NodeDescriptor {
    * @description Remove this node from its DOM parent.
    */
 }
+
+export function createNodeDescriptors(config, scope, declarations) {
+  return declarations.reduce(reduceChildren, [])
+
+  function reduceChildren(descriptors, nodeDeclarationOrArray) {
+    if (nodeDeclarationOrArray instanceof NodeDeclaration) {
+      descriptors.push(nodeDeclarationOrArray.create(config.scope))
+    }
+    else if (Array.isArray(nodeDeclarationOrArray)) {
+      nodeDeclarationOrArray.reduce(reduceChildren, descriptors)
+    }
+    else {
+      throw new Error(`Unexpected child type ${typeof childInitOrArray}`)
+    }
+
+    return descriptors
+  }
+}
