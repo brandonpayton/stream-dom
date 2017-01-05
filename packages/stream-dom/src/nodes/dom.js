@@ -1,4 +1,4 @@
-import { NodeDescriptor, createNodeDescriptors } from './node'
+import { NodeDescriptor, createNodeDescriptors } from '.'
 import { isStream } from './stream'
 
 export function element(
@@ -18,7 +18,7 @@ export function element(
   processAttributes(config, scope, domNode, attributes)
 
   const childScope = Object.assign({}, { parentNamespaceUri: namespaceUri })
-  const childDescriptors = initializeChildren(config, childScope, children)
+  const childDescriptors = createNodeDescriptors(config, childScope, children)
 
   const fragment = document.createDocumentFragment()
   childDescriptors.forEach(cd => cd.insert(fragment))

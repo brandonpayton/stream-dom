@@ -1,6 +1,6 @@
 /**
  * Base stream-dom node module.
- * @module nodes/node
+ * @module nodes
  */
 
 /**
