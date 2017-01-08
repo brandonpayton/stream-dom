@@ -3,6 +3,9 @@
  * @module nodes
  */
 
+import { replacementStream, isStream } from './stream'
+import { text } from './dom'
+
 /**
  * A node declaration
  */
@@ -56,18 +59,19 @@ export class NodeDescriptor {
    */
 }
 
-export function createNodeDescriptors(config, scope, declarations) {
-  return declarations.reduce(reduceChildren, [])
+export function createNodeDescriptors(config, scope, declarationExpressions) {
+  return declarationExpressions.reduce(reduceExpressions, [])
 
-  function reduceChildren(descriptors, nodeDeclarationOrArray) {
-    if (nodeDeclarationOrArray instanceof NodeDeclaration) {
-      descriptors.push(nodeDeclarationOrArray.create(config.scope))
-    }
-    else if (Array.isArray(nodeDeclarationOrArray)) {
-      nodeDeclarationOrArray.reduce(reduceChildren, descriptors)
+  function reduceExpressions(descriptors, expression) {
+    if (Array.isArray(expression)) {
+      expression.reduce(reduceExpressions, descriptors)
     }
     else {
-      throw new Error(`Unexpected child type ${typeof childInitOrArray}`)
+      descriptors.push(
+        expression instanceof NodeDeclaration ? expression.create(config, scope) :
+        isStream(expression) ? replacementStream(config, scope, expression) :
+        text(config, scope, expression.toString())
+      )
     }
 
     return descriptors

@@ -3,8 +3,7 @@ import symbolObservable from 'symbol-observable'
 
 import { DoublyLinkedList, Node as ListNode } from '../util/doubly-linked-list'
 
-import { NodeDeclaration, createNodeDescriptors } from './node'
-import { expression } from './expression'
+import { createNodeDescriptors } from '.'
 
 function stream(manageContent, config, scope, input$) {
   const { document } = scope
@@ -32,9 +31,7 @@ export function replacementStream(config, scope, input$) {
       const childScope = Object.assign({}, scope, {
         destroy$: merge(children$, scope.destroy$).take(1).multicast()
       })
-      return createNodeDescriptors(config, childScope, [
-        new NodeDeclaration(expression, children)
-      ])
+      return createNodeDescriptors(config, childScope, children)
     })
     .tap(childDescriptors => {
       const { document, sharedRange } = scope

@@ -4,7 +4,7 @@ module.exports.createBaseConfig = function createBaseConfig(config) {
 
     files: [
       'node_modules/babel-polyfill/browser.js',
-      'test/**/*.js'
+      'test/h.js'
     ],
 
     frameworks: [ 'mocha' ],
@@ -24,7 +24,11 @@ module.exports.createBaseConfig = function createBaseConfig(config) {
         loaders: [{
           test: /\.js$/,
           loader: 'babel',
-          include: [ `${__dirname}/test`, `${__dirname}/test-util}` ],
+          include: [
+            `${__dirname}/src`,
+            `${__dirname}/test`,
+            `${__dirname}/test-util}`
+          ],
           query: {
             presets: [ 'es2015', 'es2016' ]
           }
@@ -36,7 +40,7 @@ module.exports.createBaseConfig = function createBaseConfig(config) {
           'node_modules'
         ],
         alias: {
-          'stream-dom': `${__dirname}/lib`,
+          'stream-dom': `${__dirname}/src`,
           'test-util': `${__dirname}/test-util`
         },
         extensions: [ '', '.js' ]

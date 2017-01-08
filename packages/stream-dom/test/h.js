@@ -1,4 +1,4 @@
-import { parseTagExpression } from '../lib/h'
+import { parseTagExpression } from 'stream-dom/h'
 import { assert } from 'chai'
 
 describe('h', function () {

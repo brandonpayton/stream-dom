@@ -5,9 +5,9 @@ streamDom({
   initialSalutation: 'Hello',
   name: 'World'
 })
-.render((props, h) => h(Greeting, props))
 .until(domEvent('unload', window))
 .mount(document.body)
+.render(props => h(Greeting, props))
 
 export const inputs = {
   initialSalutation: propTypes.string,
