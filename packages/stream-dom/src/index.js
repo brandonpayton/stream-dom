@@ -1,6 +1,7 @@
-import { Stream, merge } from 'most'
+import { Stream, merge, just, never } from 'most'
 import { sync as syncSubject, hold as holdSubject } from 'most-subject'
 
+import { NodeDeclaration } from './nodes'
 import { replacementStream, orderedListStream } from './nodes/stream'
 
 export const defaultNamespaceUriMap = {
@@ -40,6 +41,8 @@ export function configure ({
     mount(parentNode, beforeNode) {
       const mountedSubject$ = holdSubject(1, syncSubject())
       const destroySubject$ = holdSubject(1, syncSubject())
+      // End the mounted stream when there is a destroy event so a call to
+      // `dispose` will stop mounting if it hasn't already occurred.
       const mounted$ = mountedSubject$.until(destroySubject$)
       const destroy$ = destroySubject$.take(1)
 
@@ -72,10 +75,7 @@ export function configure ({
       return new StreamDomIdentifiedList(this, f)
     }
     renderItems(f) {
-      return replacementStream(
-        config,
-        this.map(items => items.map(f))
-      )
+      return this.map(items => items.map(f))
     }
   }
 
@@ -85,17 +85,15 @@ export function configure ({
       this._identifyItem = identifyItem
     }
     renderItems (f) {
-      return orderedListStream(
-        config,
-        this._identifyItem,
-        item$ => replacementStream(
-          item$.map(items => items.map(f))
-        ),
-        this
-      )
+      return this.renderItemStreams(item$ => item$.map(f))
     }
     renderItemStreams (f) {
-      return orderedListStream(config, this._identifyItem, f, this)
+      const orderedListDeclaration = new NodeDeclaration(orderedListStream, {
+        getKey: this._identifyItem,
+        renderItemStream: f,
+        list$: this
+      })
+      return just(orderedListDeclaration).concat(never)
     }
   }
 

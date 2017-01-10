@@ -40,22 +40,62 @@ export class NodeDescriptor {
    * @property {string} type - The node type
    */
 
+  constructor (name = null) {
+    /**
+     * The node name
+     * @type {string|null}
+     */
+    this.name = name
+  }
+
+  /**
+   * Insert this node into a DOM parent, before a specified node
+   * or appended when no `beforeNode` is specified.
+   * @param {Node|DocumentFragment} parentNode - The target DOM parent
+   * @param {Node|NodeDescriptor} [beforeNode=null] - An optional DOM node or
+   * stream-dom node before which to insert the target node
+   */
+  insert(domParentNode, beforeNode = null) {
+    const actualBeforeNode = beforeNode instanceof NodeDescriptor
+      ? beforeNode.getBeforeNode()
+      : beforeNode
+    domParentNode.insertBefore(this.extractContents(), actualBeforeNode)
+  }
+
+  /**
+   * Remove this node from its DOM parent.
+   */
+  remove() {
+    this.deleteContents()
+  }
+
   /**
    * @abstract
    * @function
-   * @name insert
-   * @description Insert this node into a DOM parent, before a specified node
-   * or appended when no `beforeNode` is specified.
-   * @param {Node|DocumentFragment} parentNode - The target DOM parent
-   * @param {Node|NodeDescriptor} [beforeNode=null] - An optional node before
-   * which to insert the target node
+   * @name extractContents
+   * @description Extract the contents of this node.
+   * @returns {Node|DocumentFragment} A node or document fragment for insertion.
    */
 
   /**
    * @abstract
    * @function
-   * @name remove
-   * @description Remove this node from its DOM parent.
+   * @name deleteContents
+   * @description Remove the contents of this node.
+   */
+
+  /**
+   * @abstract
+   * @function
+   * @name getBeforeNode
+   * @description Get a reference node for `insertBefore`
+   * @returns {Node}
+   */
+
+  /**
+   * @abstract
+   * @property {?} expose - An optional property representing exposed
+   * reference for a node.
    */
 }
 

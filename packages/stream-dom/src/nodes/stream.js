@@ -1,9 +1,10 @@
 import { merge } from 'most'
+import { sync } from 'most-subject'
 import symbolObservable from 'symbol-observable'
 
 import { DoublyLinkedList, Node as ListNode } from '../util/doubly-linked-list'
 
-import { createNodeDescriptors } from '.'
+import { NodeDescriptor, createNodeDescriptors } from '.'
 
 function stream(manageContent, config, scope, input$) {
   const { document } = scope
@@ -47,10 +48,15 @@ export function replacementStream(config, scope, input$) {
   }
 }
 
-export function orderedListStream (config, scope, getKey, renderItemStream, list$) {
+export function orderedListStream (config, scope, {
+  getKey,
+  renderItemStream,
+  list$
+}) {
   return stream(updateListOnContentEvent, config, scope, list$)
 
   function updateListOnContentEvent(config, scope, domStartNode, domEndNode, list$) {
+    const parentDestroy$ = scope.destroy$
     const update$ = list$.map(itemList => {
       const itemMap = itemList.reduce(
         (map, item) => map.set(getKey(item), item),
@@ -109,11 +115,17 @@ export function orderedListStream (config, scope, getKey, renderItemStream, list
     })
 
     function createListNode (nodeList, listNodeMap, itemMap$, itemKey, beforeListNode) {
+      const itemDestroy$ = sync()
+      const declaration = renderItemStream(itemMap$.map(
+        itemMap => itemMap.has(itemKey) ? itemMap.get(itemKey) : null
+      ))
+      const itemScope = Object.assign({}, scope, {
+        destroy$: merge(parentDestroy$, itemDestroy$).take(1).multicast()
+      })
       const newListNode = new ListNode({
         key: itemKey,
-        streamDomNode: renderItemStream(itemMap$.map(
-          itemMap => itemMap.has(itemKey) ? itemMap.get(itemKey) : null
-        ))
+        descriptor: declaration.create(config, itemScope),
+        itemDestroy$
       })
 
       moveListNode(nodeList, newListNode, beforeListNode)
@@ -121,51 +133,64 @@ export function orderedListStream (config, scope, getKey, renderItemStream, list
     }
 
     function destroyListNode (nodeList, listNodeMap, listNode) {
+      const { value } = listNode
       nodeList.remove(listNode)
-      listNodeMap.delete(listNode.value.key)
-      listNode.value.streamDomNode.remove()
+      listNodeMap.delete(value.key)
+      value.itemDestroy$.next()
+      value.descriptor.remove()
     }
 
     function moveListNode (nodeList, listNode, beforeListNode) {
       nodeList.insertBefore(listNode, beforeListNode)
 
-      const { streamDomNode } = listNode.value
+      const { descriptor } = listNode.value
       const parentNode = domEndNode.parentNode
-      const beforeNode = beforeListNode ? beforeListNode.value.streamDomNode : domEndNode
-      streamDomNode.insert(parentNode, beforeNode)
+      const beforeNode = beforeListNode ? beforeListNode.value.descriptor : domEndNode
+      descriptor.insert(parentNode, beforeNode)
     }
   }
 }
 
-class StreamNodeDescriptor {
+class StreamNodeDescriptor extends NodeDescriptor {
   get type() { return 'stream' }
 
   constructor(sharedRange, domStartNode, domEndNode, childDescriptors$) {
+    super()
+
     this.sharedRange = sharedRange
     this.domStartNode = domStartNode
     this.domEndNode = domEndNode
     this.childDescriptors$ = childDescriptors$
   }
 
-  insert(domParentNode, domBeforeNode = null) {
+  extractContents() {
     const { domStartNode, domEndNode } = this
 
     if (domStartNode.parentNode === null) {
-      domParentNode.insertBefore(domStartNode, domBeforeNode)
-      domParentNode.insertBefore(domEndNode, domBeforeNode)
+      const fragment = document.createDocumentFragment()
+      fragment.appendChild(domStartNode)
+      fragment.appendChild(domEndNode)
+      return fragment
     }
     else {
       const { sharedRange } = this
       sharedRange.setStartBefore(domStartNode)
       sharedRange.setStartAfter(domEndNode)
-      domParentNode.insertBefore(sharedRange.extractContents(), domBeforeNode)
+      return sharedRange.extractContents()
     }
   }
-  remove() {
-    const { sharedRange } = this
-    sharedRange.setStartBefore(this.domStartNode)
-    sharedRange.setEndAfter(this.domEndNode)
-    sharedRange.deleteContents()
+
+  deleteContents() {
+    if (this.domStartNode.parentNode === null) {
+      const { sharedRange } = this
+      sharedRange.setStartBefore(this.domStartNode)
+      sharedRange.setEndAfter(this.domEndNode)
+      sharedRange.deleteContents()
+    }
+  }
+
+  getBeforeNode() {
+    return this.domStartNode
   }
 }
 

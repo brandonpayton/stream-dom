@@ -1,6 +1,5 @@
 import { NodeDeclaration } from './nodes'
-import { element, text } from './nodes/dom'
-import { component } from './nodes/component'
+import { element } from './nodes/dom'
 
 /**
  * Parse a tag expression containing an optional namespace prefix and a tag name.
@@ -38,9 +37,9 @@ export function h(tagExpression, args, children) {
     })
   }
   else if (typeof tagExpression === 'function') {
-    const component = tagExpression
+    const Component = tagExpression
     const { props } = args
-    return new NodeDeclaration(component, { props, children })
+    return new NodeDeclaration(Component, { props, children })
   }
   else {
     throw new TypeError(`Unsupported tag type '${tagExpression}'`)

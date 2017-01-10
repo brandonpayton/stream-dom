@@ -31,12 +31,7 @@ export function text(config, scope, str) {
   return () => new TextNodeDescriptor(config.document.createTextNode(str))
 }
 
-function processAttributes(
-  config,
-  scope,
-  domNode,
-  attributes
-) {
+function processAttributes(config, scope, domNode, attributes) {
   attributes.forEach(attributeDescriptor => {
     if (Array.isArray(attributeDescriptor)) {
       processAttributes(config, scope, domNode, attributeDescriptor)
@@ -52,12 +47,7 @@ function processAttributes(
   })
 }
 
-function handleAttribute(
-  config,
-  scope,
-  elementNode,
-  attribute
-) {
+function handleAttribute(config, scope, elementNode, attribute) {
   const { namespace, name } = attribute
   const valueOrStream = attribute.value
   const namespaceUri = namespace ? config.getNamespaceUri(namespace) : null
@@ -75,10 +65,7 @@ function handleAttribute(
 }
 
 function handlePropertyAttribute(
-  config,
-  scope,
-  elementNode,
-  { name, valueOrStream }
+  config, scope, elementNode, { name, valueOrStream }
 ) {
   if (isStream(valueOrStream)) {
     const stream = valueOrStream
@@ -90,12 +77,7 @@ function handlePropertyAttribute(
   }
 }
 
-function setAttribute(
-  elementNode,
-  namespaceUri,
-  name,
-  value
-) {
+function setAttribute(elementNode, namespaceUri, name, value) {
   // Attributes with a no value are treated as boolean
   value === null && (value = true)
 
@@ -123,24 +105,31 @@ function setWithStream(scope, valueStream, setter) {
 export class DomNodeDescriptor extends NodeDescriptor {
   /**
    * Create a DOM node descriptor.
+   * @param {string|null} name - The node name
+   * @param {NodeDescriptor[]|null} childDescriptors - The node's child descriptors
    * @param {Node} domNode - The DOM node.
    */
-  constructor(domNode) {
-    super()
+  constructor(name, childDescriptors, domNode) {
+    super(name)
 
     /**
      * The DOM node.
      * @type {Node}
      */
     this.domNode = domNode
+
+    this.expose = this.domNode
   }
 
-  insert(domParentNode, domBeforeNode = null) {
-    domParentNode.insertBefore(this.domNode, domBeforeNode)
+  extractContents() {
+    return this.domNode
   }
-  remove() {
-    const {domNode} = this
+  deleteContents() {
+    const { domNode } = this
     domNode.parentNode.removeChild(domNode)
+  }
+  getBeforeNode() {
+    return this.domNode
   }
 }
 
@@ -150,17 +139,12 @@ export class DomNodeDescriptor extends NodeDescriptor {
 export class ElementNodeDescriptor extends DomNodeDescriptor {
   get type() { return 'element' }
 
-  /**
-   * Create a DOM element descriptor.
-   * @param {Node} domNode  - The element's DOM node.
-   * @param {NodeDescriptor[]}
-   */
-  constructor(domNode, childDescriptors) {
-    super(domNode)
+  constructor(name, childDescriptors, domNode) {
+    super(name, domNode)
 
     /**
-     * Descriptors for child nodes.
-     * @type {NodeDescriptor[]}
+     * The node's child descriptors
+     * @type {NodeDescriptor[]|null}
      */
     this.childDescriptors = childDescriptors
   }

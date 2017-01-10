@@ -6,8 +6,8 @@ streamDom({
   name: 'World'
 })
 .until(domEvent('unload', window))
-.mount(document.body)
 .render(props => h(Greeting, props))
+.mount(document.body)
 
 export const inputs = {
   initialSalutation: propTypes.string,
