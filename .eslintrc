@@ -1,20 +1,7 @@
 {
-  "env": {
-    "browser": true,
-    "node": true
-  },
-
-  "parserOptions": {
-    "ecmaVersion": 6,
-    "sourceType": "module"
-  },
-
-  "extends": "eslint:recommended",
+  "extends": "@most/eslint-config-most",
   "rules": {
-    "indent": [ "error", 2 ],
-    "no-console": [ 0 ],
-    "quotes": [ 2, "single", "avoid-escape" ],
-    "strict": [ 2, "never" ],
-    "semi": [ 2, "never" ]
+    "complexity": [ "error", 4 ],
+    "operator-linebreak": [ "error", "after", { "overrides": { "?": "ignore", ":": "ignore" } }]
   }
 }

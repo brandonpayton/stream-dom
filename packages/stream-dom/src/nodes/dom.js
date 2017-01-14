@@ -1,101 +1,99 @@
+import { domEvent } from '@most/dom-event'
+
 import { NodeDescriptor, createNodeDescriptors } from '.'
 import { isStream } from './stream'
 
-export function element(
-  config,
-  scope,
-  {
-    name,
-    namespaceName = null,
-    attributes = [],
-    children = []
-  }
-) {
+export function element (scope, args) {
   const { document, parentNamespaceUri } = scope
-  const namespaceUri = namespaceName ? config.getNamespaceUri(namespaceName) : parentNamespaceUri
+  const {
+    name,
+    attributes = {},
+    properties = {},
+    children = []
+  } = args
+  const namespaceUri = getNamespaceUri(scope, args)
+
   const domNode = document.createElementNS(namespaceUri, name)
 
-  processAttributes(config, scope, domNode, attributes)
+  const childScope = namespaceUri === parentNamespaceUri
+    ? scope
+    : Object.assign({}, { parentNamespaceUri: namespaceUri })
 
-  const childScope = Object.assign({}, { parentNamespaceUri: namespaceUri })
-  const childDescriptors = createNodeDescriptors(config, childScope, children)
+  processAttributes(childScope, domNode, attributes)
+  processProperties(childScope, domNode, properties)
+
+  const childDescriptors = createNodeDescriptors(childScope, children)
 
   const fragment = document.createDocumentFragment()
-  childDescriptors.forEach(cd => cd.insert(fragment))
+  childDescriptors.forEach(descriptor => descriptor.insert(fragment))
   domNode.appendChild(fragment)
 
   return new ElementNodeDescriptor({ domNode, childDescriptors })
 }
 
-export function text(config, scope, str) {
-  return () => new TextNodeDescriptor(config.document.createTextNode(str))
+export function text (scope, str) {
+  return () => new TextNodeDescriptor(scope.document.createTextNode(str))
 }
 
-function processAttributes(config, scope, domNode, attributes) {
-  attributes.forEach(attributeDescriptor => {
-    if (Array.isArray(attributeDescriptor)) {
-      processAttributes(config, scope, domNode, attributeDescriptor)
-    }
-    else {
-      const { namespace } = attributeDescriptor
-      const handler = namespace === config.propertyNamespaceName
-        ? handlePropertyAttribute
-        : handleAttribute
-
-      handler(config, scope, domNode, attributeDescriptor)
-    }
-  })
+function processAttributes (scope, domNode, attributes) {
+  attributes.forEach(
+    attribute => handleAttribute(scope, domNode, attribute)
+  )
 }
 
-function handleAttribute(config, scope, elementNode, attribute) {
-  const { namespace, name } = attribute
-  const valueOrStream = attribute.value
-  const namespaceUri = namespace ? config.getNamespaceUri(namespace) : null
+function handleAttribute (scope, elementNode, attribute) {
+  const namespaceUri = getNamespaceUri(scope, attribute)
+  const { name, value: valueOrStream } = attribute
 
   if (isStream(valueOrStream)) {
     const stream = valueOrStream
     setWithStream(scope, stream, value => {
       setAttribute(elementNode, namespaceUri, name, value)
     })
-  }
-  else {
+  } else {
     const value = valueOrStream
     setAttribute(elementNode, namespaceUri, name, value)
   }
 }
 
-function handlePropertyAttribute(
-  config, scope, elementNode, { name, valueOrStream }
-) {
-  if (isStream(valueOrStream)) {
-    const stream = valueOrStream
-    setWithStream(elementNode, stream, value => (elementNode[name] = value))
-  }
-  else {
-    const value = valueOrStream
-    setProperty(elementNode, name, value)
-  }
-}
-
-function setAttribute(elementNode, namespaceUri, name, value) {
-  // Attributes with a no value are treated as boolean
+function setAttribute (elementNode, namespaceUri, name, value) {
+  // Attributes with no value are treated as boolean
   value === null && (value = true)
 
-  if (value === true || value === false) {
-    value
-      ? elementNode.setAttributeNS(namespaceUri, name, '')
-      : elementNode.removeAttributeNS(namespaceUri, name)
-  }
-  else {
+  if (value === true || !value) {
+    setBooleanAttribute(elementNode, namespaceUri, name, value)
+  } else {
     elementNode.setAttributeNS(namespaceUri, name, value)
   }
 }
 
-function setProperty(elementNode, name, value) {
+function setBooleanAttribute (elementNode, namespaceUri, name, value) {
+  value
+    ? elementNode.setAttributeNS(namespaceUri, name, '')
+    : elementNode.removeAttributeNS(namespaceUri, name)
+}
+
+function getNamespaceUri (scope, nodeArgs) {
+  return nodeArgs.namespaceUri || scope.parentNamespaceUri
+}
+
+function processProperties (scope, domNode, properties) {
+  Object.keys(properties).forEach(
+    name => handleProperty(scope, domNode, name, properties[name])
+  )
+}
+
+function handleProperty (scope, elementNode, name, value) {
+  isStream(value)
+    ? setWithStream(elementNode, value, value => (elementNode[name] = value))
+    : setProperty(elementNode, name, value)
+}
+
+function setProperty (elementNode, name, value) {
   elementNode[name] = value
 }
 
-function setWithStream(scope, valueStream, setter) {
+function setWithStream (scope, valueStream, setter) {
   valueStream.skipRepeats().until(scope.destroy$).observe(setter)
 }
 
@@ -109,7 +107,7 @@ export class DomNodeDescriptor extends NodeDescriptor {
    * @param {NodeDescriptor[]|null} childDescriptors - The node's child descriptors
    * @param {Node} domNode - The DOM node.
    */
-  constructor(name, childDescriptors, domNode) {
+  constructor (name, childDescriptors, domNode) {
     super(name)
 
     /**
@@ -118,18 +116,27 @@ export class DomNodeDescriptor extends NodeDescriptor {
      */
     this.domNode = domNode
 
-    this.expose = this.domNode
+    this.expose = new ExposedElement(domNode)
   }
 
-  extractContents() {
+  extractContents () {
     return this.domNode
   }
-  deleteContents() {
+  deleteContents () {
     const { domNode } = this
     domNode.parentNode.removeChild(domNode)
   }
-  getBeforeNode() {
+  getBeforeNode () {
     return this.domNode
+  }
+}
+
+class ExposedElement {
+  constructor (domNode) {
+    this.domNode = domNode
+  }
+  on (eventName, useCapture = false) {
+    return domEvent(eventName, this.domNode, useCapture)
   }
 }
 
@@ -137,9 +144,9 @@ export class DomNodeDescriptor extends NodeDescriptor {
  * A descriptor for a DOM element.
  */
 export class ElementNodeDescriptor extends DomNodeDescriptor {
-  get type() { return 'element' }
+  get type () { return 'element' }
 
-  constructor(name, childDescriptors, domNode) {
+  constructor (name, childDescriptors, domNode) {
     super(name, domNode)
 
     /**
@@ -154,5 +161,5 @@ export class ElementNodeDescriptor extends DomNodeDescriptor {
  * A descriptor for a DOM text node.
  */
 export class TextNodeDescriptor extends DomNodeDescriptor {
-  get type() { return 'text' }
+  get type () { return 'text' }
 }

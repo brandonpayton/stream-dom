@@ -55,7 +55,7 @@ export class NodeDescriptor {
    * @param {Node|NodeDescriptor} [beforeNode=null] - An optional DOM node or
    * stream-dom node before which to insert the target node
    */
-  insert(domParentNode, beforeNode = null) {
+  insert (domParentNode, beforeNode = null) {
     const actualBeforeNode = beforeNode instanceof NodeDescriptor
       ? beforeNode.getBeforeNode()
       : beforeNode
@@ -65,7 +65,7 @@ export class NodeDescriptor {
   /**
    * Remove this node from its DOM parent.
    */
-  remove() {
+  remove () {
     this.deleteContents()
   }
 
@@ -99,14 +99,13 @@ export class NodeDescriptor {
    */
 }
 
-export function createNodeDescriptors(config, scope, declarationExpressions) {
+export function createNodeDescriptors (config, scope, declarationExpressions) {
   return declarationExpressions.reduce(reduceExpressions, [])
 
-  function reduceExpressions(descriptors, expression) {
+  function reduceExpressions (descriptors, expression) {
     if (Array.isArray(expression)) {
       expression.reduce(reduceExpressions, descriptors)
-    }
-    else {
+    } else {
       descriptors.push(
         expression instanceof NodeDeclaration ? expression.create(config, scope) :
         isStream(expression) ? replacementStream(config, scope, expression) :

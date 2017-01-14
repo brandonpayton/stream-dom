@@ -32,58 +32,56 @@ export const propTypes = {
   feedback
 }
 
-// TODO: Provide actual reference to StreamDom class
-class StreamDom {}
+export function configure ({ streamDom, defaultNamespaceUri }) {
+  return function component (propsDeclaration, declare, createOutput) {
+    return function (scope, { name, props: originalProps }) {
+      // TODO: Wrap unwrapped input streams
+      const { props, feedbackStreams } =
+        bindInput(streamDom, propsDeclaration, originalProps)
+      const declaration = declare(props)
 
-export function component (propsDeclaration, declare, createOutput) {
-  return function (config, scope, {
-    name,
-    props: originalProps
-  }) {
-    // TODO: Wrap input streams if necessary
-    const { props, feedbackStreams } = bindInput(propsDeclaration, originalProps)
-    const declaration = declare(props)
+      const componentScope = scope.parentNamespaceUri === defaultNamespaceUri
+        ? scope
+        : Object.assign({}, scope, { parentNamespaceUri: defaultNamespaceUri })
 
-    const rootDescriptor = declaration.create(config, scope)
-    const namedNodes = [ rootDescriptor ].reduce(reduceNamedNodes, {})
+      const rootDescriptor = declaration.create(componentScope)
+      const namedNodes = [ rootDescriptor ].reduce(reduceNamedNodes, {})
 
-    const output = createOutput(namedNodes)
+      const output = bindOutput(streamDom, feedbackStreams, createOutput(namedNodes))
 
-    Object.keys(feedbackStreams).forEach(key => {
-      if (!(key in output)) {
-        console.warn(`Unable to attach feedback stream for key '${key}'`)
-      }
-      else {
-        const attach = feedbackStreams[key]
-        attach(output[key])
-      }
-    })
-
-    return new ComponentDescriptor(name, rootDescriptor, output)
+      return new ComponentDescriptor(name, rootDescriptor, output)
+    }
   }
 }
 
 // Expose for unit test
-export function reduceNamedNodes(namedNodes, node) {
+// TODO: Address high complexity and re-enable complexity rule
+// eslint-disable-next-line complexity
+export function reduceNamedNodes (namedNodes, node) {
   const { name } = node
   if (name) {
     if (name in namedNodes) {
       console.warn(`Duplicate node name '${name}'`)
-    }
-    else {
+    } else if (!('expose' in node)) {
+      console.warn(`No exposed interface for node named '${name}'`)
+    } else {
       namedNodes[name] = node
     }
   }
 
   if (node.type === 'element' && node.childDescriptors.length > 0) {
-    namedNodes = node.childDescriptors.reduce(reduceNamedNodes, namedNodes)
+    namedNodes = node.childDescriptors.reduce(
+      reduceNamedNodes, namedNodes
+    )
   }
 
   return namedNodes
 }
 
 // Expose for unit test
-export function bindInput (shapeDeclaration, actualInput) {
+export function bindInput (streamDom, shapeDeclaration, actualInput) {
+  // TODO: Address high complexity and re-enable complexity rule
+  // eslint-disable-next-line complexity
   return Object.keys(shapeDeclaration).reduce((result, key) => {
     const validator = shapeDeclaration[key]
 
@@ -96,16 +94,15 @@ export function bindInput (shapeDeclaration, actualInput) {
       const { stream, attach } = proxy()
       result.props[key] = stream
       result.feedbackStreams[key] = attach
-    }
-    else {
+    } else {
       const value = actualInput[key]
       const valid = validator(value)
       if (!valid) {
         console.warn(`Invalid prop '${key}'`)
       }
 
-      result.props[key] = validator === stream && !(stream instanceof StreamDom)
-        ? new StreamDom(value)
+      result.props[key] = validator === stream
+        ? streamDom(value)
         : value
     }
 
@@ -113,8 +110,28 @@ export function bindInput (shapeDeclaration, actualInput) {
   }, { props: {}, feedbackStreams: {} })
 }
 
+// Expose for unit test
+export function bindOutput (streamDom, feedbackStreams, rawOutput) {
+  const output = Object.keys(rawOutput).reduce((memo, key) => {
+    const value = rawOutput[key]
+    memo[key] = isStream(value) ? streamDom(value) : value
+    return memo
+  }, {})
+
+  Object.keys(feedbackStreams).forEach(key => {
+    if (!(key in output)) {
+      console.warn(`Unable to attach feedback stream for key '${key}'`)
+    } else {
+      const attach = feedbackStreams[key]
+      attach(output[key])
+    }
+  })
+
+  return output
+}
+
 export class ComponentDescriptor extends NodeDescriptor {
-  get type() { return 'component' }
+  get type () { return 'component' }
 
   constructor (name, rootDescriptor, output) {
     super(name)
@@ -128,13 +145,13 @@ export class ComponentDescriptor extends NodeDescriptor {
     this.expose = output
   }
 
-  extractContents() {
+  extractContents () {
     return this.rootDescriptor.extractContents()
   }
-  deleteContents() {
+  deleteContents () {
     this.rootDescriptor.deleteContents()
   }
-  getBeforeNode() {
+  getBeforeNode () {
     return this.rootDescriptor.getBeforeNode()
   }
 }

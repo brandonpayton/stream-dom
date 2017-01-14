@@ -6,33 +6,30 @@ import { DoublyLinkedList, Node as ListNode } from '../util/doubly-linked-list'
 
 import { NodeDescriptor, createNodeDescriptors } from '.'
 
-function stream(manageContent, config, scope, input$) {
+function stream (manageContent, scope, input$) {
   const { document } = scope
   const domStartNode = document.createComment('')
   const domEndNode = document.createComment('')
 
-  const content$ = manageContent(config, scope, domEndNode, input$)
+  const content$ = manageContent(scope, domEndNode, input$)
     .until(scope.destroy$)
     .multicast()
   content$.drain()
 
   return new StreamNodeDescriptor(
-    config.sharedRange,
-    domStartNode,
-    domEndNode,
-    content$
+    scope.sharedRange, domStartNode, domEndNode, content$
   )
 }
 
-export function replacementStream(config, scope, input$) {
-  return stream(replaceOnContentEvent, config, scope, input$)
+export function replacementStream (scope, input$) {
+  return stream(replaceOnContentEvent, scope, input$)
 
-  function replaceOnContentEvent (config, scope, domStartNode, domEndNode, children$) {
+  function replaceOnContentEvent (scope, domStartNode, domEndNode, children$) {
     return children$.map(children => {
       const childScope = Object.assign({}, scope, {
         destroy$: merge(children$, scope.destroy$).take(1).multicast()
       })
-      return createNodeDescriptors(config, childScope, children)
+      return createNodeDescriptors(childScope, children)
     })
     .tap(childDescriptors => {
       const { document, sharedRange } = scope
@@ -48,14 +45,14 @@ export function replacementStream(config, scope, input$) {
   }
 }
 
-export function orderedListStream (config, scope, {
+export function orderedListStream (scope, {
   getKey,
   renderItemStream,
   list$
 }) {
-  return stream(updateListOnContentEvent, config, scope, list$)
+  return stream(updateListOnContentEvent, scope, list$)
 
-  function updateListOnContentEvent(config, scope, domStartNode, domEndNode, list$) {
+  function updateListOnContentEvent (scope, domStartNode, domEndNode, list$) {
     const parentDestroy$ = scope.destroy$
     const update$ = list$.map(itemList => {
       const itemMap = itemList.reduce(
@@ -66,6 +63,8 @@ export function orderedListStream (config, scope, {
     })
     const itemMap$ = update$.map(update => update.itemMap).multicast()
 
+    // TODO: Address high complexity and re-enable complexity rule
+    // eslint-disable-next-line complexity
     return update$.scan((nodeState, update) => {
       const { nodeList, nodeMap } = nodeState
       const { itemList, itemMap } = update
@@ -79,8 +78,7 @@ export function orderedListStream (config, scope, {
           const nodeToDestroy = currentListNode
           currentListNode = currentListNode.next
           destroyListNode(itemList, itemMap, nodeToDestroy)
-        }
-        else {
+        } else {
           const item = itemList[i]
           const itemKey = getKey(item)
 
@@ -89,12 +87,10 @@ export function orderedListStream (config, scope, {
 
             if (itemListNode.key === currentListNode.key) {
               currentListNode = currentListNode.next
-            }
-            else {
+            } else {
               moveListNode(nodeList, itemListNode, currentListNode)
             }
-          }
-          else {
+          } else {
             createListNode(nodeList, nodeMap, itemMap$, itemKey, currentListNode)
           }
 
@@ -124,7 +120,7 @@ export function orderedListStream (config, scope, {
       })
       const newListNode = new ListNode({
         key: itemKey,
-        descriptor: declaration.create(config, itemScope),
+        descriptor: declaration.create(itemScope),
         itemDestroy$
       })
 
@@ -152,9 +148,9 @@ export function orderedListStream (config, scope, {
 }
 
 class StreamNodeDescriptor extends NodeDescriptor {
-  get type() { return 'stream' }
+  get type () { return 'stream' }
 
-  constructor(sharedRange, domStartNode, domEndNode, childDescriptors$) {
+  constructor (sharedRange, domStartNode, domEndNode, childDescriptors$) {
     super()
 
     this.sharedRange = sharedRange
@@ -163,7 +159,7 @@ class StreamNodeDescriptor extends NodeDescriptor {
     this.childDescriptors$ = childDescriptors$
   }
 
-  extractContents() {
+  extractContents () {
     const { domStartNode, domEndNode } = this
 
     if (domStartNode.parentNode === null) {
@@ -171,8 +167,7 @@ class StreamNodeDescriptor extends NodeDescriptor {
       fragment.appendChild(domStartNode)
       fragment.appendChild(domEndNode)
       return fragment
-    }
-    else {
+    } else {
       const { sharedRange } = this
       sharedRange.setStartBefore(domStartNode)
       sharedRange.setStartAfter(domEndNode)
@@ -180,7 +175,7 @@ class StreamNodeDescriptor extends NodeDescriptor {
     }
   }
 
-  deleteContents() {
+  deleteContents () {
     if (this.domStartNode.parentNode === null) {
       const { sharedRange } = this
       sharedRange.setStartBefore(this.domStartNode)
@@ -189,11 +184,11 @@ class StreamNodeDescriptor extends NodeDescriptor {
     }
   }
 
-  getBeforeNode() {
+  getBeforeNode () {
     return this.domStartNode
   }
 }
 
-export function isStream(candidate) {
+export function isStream (candidate) {
   return candidate && !!candidate[symbolObservable]
 }
