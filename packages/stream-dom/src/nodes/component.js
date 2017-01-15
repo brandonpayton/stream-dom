@@ -33,21 +33,19 @@ export const propTypes = {
 }
 
 export function configure ({ streamDom, defaultNamespaceUri }) {
-  return function component (propsDeclaration, declare, createOutput) {
+  return function component (propsDeclaration, declareStructure, createOutput) {
     return function (scope, { name, props: originalProps }) {
       // TODO: Wrap unwrapped input streams
       const { props, feedbackStreams } =
         bindInput(streamDom, propsDeclaration, originalProps)
-      const declaration = declare(props)
 
-      const componentScope = scope.parentNamespaceUri === defaultNamespaceUri
-        ? scope
-        : Object.assign({}, scope, { parentNamespaceUri: defaultNamespaceUri })
+      const declaredStructure = declareStructure(props)
 
-      const rootDescriptor = declaration.create(componentScope)
-      const namedNodes = [ rootDescriptor ].reduce(reduceNamedNodes, {})
+      const { rootDescriptor, namedNodes } =
+        createStructure(defaultNamespaceUri, scope, declaredStructure)
 
-      const output = bindOutput(streamDom, feedbackStreams, createOutput(namedNodes))
+      const output =
+        bindOutput(streamDom, feedbackStreams, createOutput(namedNodes))
 
       return new ComponentDescriptor(name, rootDescriptor, output)
     }
@@ -108,6 +106,18 @@ export function bindInput (streamDom, shapeDeclaration, actualInput) {
 
     return result
   }, { props: {}, feedbackStreams: {} })
+}
+
+// Expose for unit test
+export function createStructure (defaultNamespaceUri, scope, declaration) {
+  const componentScope = scope.parentNamespaceUri === defaultNamespaceUri
+    ? scope
+    : Object.assign({}, scope, { parentNamespaceUri: defaultNamespaceUri })
+
+  const rootDescriptor = declaration.create(componentScope)
+  const namedNodes = [ rootDescriptor ].reduce(reduceNamedNodes, {})
+
+  return { rootDescriptor, namedNodes }
 }
 
 // Expose for unit test

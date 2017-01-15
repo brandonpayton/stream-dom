@@ -69,3 +69,14 @@ export const outputs = ({ listNode }) => {
 
   const editTodo$
 }
+
+
+renderItems(item => <div>stuff</div>)
+renderItems({
+  identify: item => item.id,
+  render: item => <div>{item.name}</div>
+})
+renderItemStreams({
+  identify: item => item.id,
+  render: item$ => <div>{item$.prop('name')}</div>
+})

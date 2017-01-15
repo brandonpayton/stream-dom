@@ -2,6 +2,7 @@
   "extends": "@most/eslint-config-most",
   "rules": {
     "complexity": [ "error", 4 ],
-    "operator-linebreak": [ "error", "after", { "overrides": { "?": "ignore", ":": "ignore" } }]
+    "operator-linebreak": [ "error", "after", { "overrides": { "?": "ignore", ":": "ignore" } }],
+    "quotes": [ "error", "backtick", { "avoidEscape": true } ]
   }
 }

@@ -8,8 +8,8 @@ import { NodeDescriptor, createNodeDescriptors } from '.'
 
 function stream (manageContent, scope, input$) {
   const { document } = scope
-  const domStartNode = document.createComment('')
-  const domEndNode = document.createComment('')
+  const domStartNode = document.createComment(``)
+  const domEndNode = document.createComment(``)
 
   const content$ = manageContent(scope, domEndNode, input$)
     .until(scope.destroy$)
@@ -148,7 +148,7 @@ export function orderedListStream (scope, {
 }
 
 class StreamNodeDescriptor extends NodeDescriptor {
-  get type () { return 'stream' }
+  get type () { return `stream` }
 
   constructor (sharedRange, domStartNode, domEndNode, childDescriptors$) {
     super()

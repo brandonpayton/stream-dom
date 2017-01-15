@@ -8,13 +8,13 @@ import { replacementStream, orderedListStream } from './nodes/stream'
 
 // TODO: Relocate to JSX transform
 export const defaultNamespaceUriMap = {
-  html: 'http://www.w3.org/1999/xhtml',
-  svg: 'http://www.w3.org/2000/svg',
-  xlink: 'http://www.w3.org/1999/xlink'
+  html: `http://www.w3.org/1999/xhtml`,
+  svg: `http://www.w3.org/2000/svg`,
+  xlink: `http://www.w3.org/1999/xlink`
 }
 
 export function configure ({
-  defaultNamespaceUri = 'http://www.w3.org/1999/xhtml'
+  defaultNamespaceUri = `http://www.w3.org/1999/xhtml`
 } = {}) {
   const config = { defaultNamespaceUri }
 
@@ -102,9 +102,9 @@ export function configure ({
   // Add `d` to `streamDom` export so it can be used
   // by transpiled JSX without requiring an additional import.
   streamDom.d = function d (tag, args) {
-    if (typeof tag === 'string') {
+    if (typeof tag === `string`) {
       return declareElement(tag, args)
-    } else if (typeof tag === 'function') {
+    } else if (typeof tag === `function`) {
       return declareComponent(tag, args)
     } else {
       throw new TypeError(`Unsupported tag type '${tag}'`)
@@ -125,8 +125,8 @@ function declareElement (name, {
   props,
   children
 }) {
-  if (name === '') {
-    throw new RangeError('Tag name must not be the empty string')
+  if (name === ``) {
+    throw new RangeError(`Tag name must not be the empty string`)
   } else {
     return new NodeDeclaration(element, {
       namespaceName, name, attrs, props, children

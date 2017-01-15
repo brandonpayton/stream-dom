@@ -69,7 +69,7 @@ function setAttribute (elementNode, namespaceUri, name, value) {
 
 function setBooleanAttribute (elementNode, namespaceUri, name, value) {
   value
-    ? elementNode.setAttributeNS(namespaceUri, name, '')
+    ? elementNode.setAttributeNS(namespaceUri, name, ``)
     : elementNode.removeAttributeNS(namespaceUri, name)
 }
 
@@ -144,7 +144,7 @@ class ExposedElement {
  * A descriptor for a DOM element.
  */
 export class ElementNodeDescriptor extends DomNodeDescriptor {
-  get type () { return 'element' }
+  get type () { return `element` }
 
   constructor (name, childDescriptors, domNode) {
     super(name, domNode)
@@ -161,5 +161,5 @@ export class ElementNodeDescriptor extends DomNodeDescriptor {
  * A descriptor for a DOM text node.
  */
 export class TextNodeDescriptor extends DomNodeDescriptor {
-  get type () { return 'text' }
+  get type () { return `text` }
 }
