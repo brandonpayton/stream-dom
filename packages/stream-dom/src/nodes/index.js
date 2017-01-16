@@ -99,7 +99,7 @@ export class NodeDescriptor {
    */
 }
 
-export function createNodeDescriptors (config, scope, declarationExpressions) {
+export function createNodeDescriptors (scope, declarationExpressions) {
   return declarationExpressions.reduce(reduceExpressions, [])
 
   function reduceExpressions (descriptors, expression) {
@@ -107,9 +107,9 @@ export function createNodeDescriptors (config, scope, declarationExpressions) {
       expression.reduce(reduceExpressions, descriptors)
     } else {
       descriptors.push(
-        expression instanceof NodeDeclaration ? expression.create(config, scope) :
-        isStream(expression) ? replacementStream(config, scope, expression) :
-        text(config, scope, expression.toString())
+        expression instanceof NodeDeclaration ? expression.create(scope) :
+        isStream(expression) ? replacementStream(scope, expression) :
+        text(scope, expression.toString())
       )
     }
 

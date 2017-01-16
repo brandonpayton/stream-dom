@@ -1,4 +1,4 @@
-suite(`dom`, function () {
+suite(`nodes/dom`, function () {
   suite(`element`, function () {
     test(`no children, attributes, or properties`)
     test(`static attributes`)

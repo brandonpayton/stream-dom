@@ -1,49 +1,55 @@
-module.exports.createBaseConfig = function createBaseConfig(config) {
+module.exports.createBaseConfig = function createBaseConfig (config) {
   return {
     singleRun: true,
 
     files: [
-      'node_modules/babel-polyfill/browser.js',
-      'test/h.js'
+      `node_modules/babel-polyfill/browser.js`,
+      `test/**/*.js`
     ],
 
-    frameworks: [ 'mocha' ],
+    frameworks: [ `mocha` ],
 
     preprocessors: {
-      'test/**/*.js': [ 'webpack', 'sourcemap' ]
+      'test/**/*.js': [ `webpack`, `sourcemap` ]
     },
 
     logLevel: config.LOG_INFO,
 
-    reporters: [ 'spec' ],
+    reporters: [ `spec` ],
+
+    client: {
+      mocha: {
+        ui: `tdd`
+      }
+    },
 
     webpack: {
-      devtool: 'inline-source-map',
+      devtool: `inline-source-map`,
 
       module: {
         loaders: [{
           test: /\.js$/,
-          loader: 'babel',
+          loader: `babel`,
           include: [
             `${__dirname}/src`,
             `${__dirname}/test`,
             `${__dirname}/test-util}`
           ],
           query: {
-            presets: [ 'es2015', 'es2016' ]
+            presets: [ `es2015`, `es2016` ]
           }
         }]
       },
       resolve: {
         modulesDirectories: [
-          '',
-          'node_modules'
+          ``,
+          `node_modules`
         ],
         alias: {
           'stream-dom': `${__dirname}/src`,
           'test-util': `${__dirname}/test-util`
         },
-        extensions: [ '', '.js' ]
+        extensions: [ ``, `.js` ]
       }
     },
 
@@ -53,10 +59,10 @@ module.exports.createBaseConfig = function createBaseConfig(config) {
     },
 
     plugins: [
-      require('karma-webpack'),
-      require('karma-sourcemap-loader'),
-      require('karma-mocha'),
-      require('karma-spec-reporter')
+      require(`karma-webpack`),
+      require(`karma-sourcemap-loader`),
+      require(`karma-mocha`),
+      require(`karma-spec-reporter`)
     ]
   }
 }

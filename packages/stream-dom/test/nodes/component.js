@@ -1,4 +1,9 @@
-suite(`component`, function () {
+suite(`nodes/component`, function () {
+  test(`static props and output`)
+  test(`dynamic props and output`)
+  test(`feedback streams`)
+  test(`ComponentDescriptor`)
+
   suite(`input`, function () {
     suite(`propTypes validation`, function () {
       test(`required`)
@@ -32,5 +37,6 @@ suite(`component`, function () {
     test(`wraps output streams`)
     test(`leaves wrapped streams intact`)
     test(`ensures output streams are multicast`)
+    test(`attaches feedback streams`)
   })
 })

@@ -5,10 +5,10 @@ import { proxy } from 'most-proxy'
 
 const any = () => true
 const required = v => v !== undefined
-const boolean = v => typeof v === 'boolean'
-const string = v => typeof v === 'string'
-const number = v => typeof v === 'number'
-const object = v => typeof v === 'object'
+const boolean = v => typeof v === `boolean`
+const string = v => typeof v === `string`
+const number = v => typeof v === `number`
+const object = v => typeof v === `object`
 const array = v => Array.isArray(v)
 const stream = isStream
 // `feedback` indicates an internal stream dependency, so no validation is
@@ -34,7 +34,7 @@ export const propTypes = {
 
 export function configure ({ streamDom, defaultNamespaceUri }) {
   return function component (propsDeclaration, declareStructure, createOutput) {
-    return function (scope, { name, props: originalProps }) {
+    return function createComponent (scope, { name, props: originalProps }) {
       // TODO: Wrap unwrapped input streams
       const { props, feedbackStreams } =
         bindInput(streamDom, propsDeclaration, originalProps)
@@ -60,14 +60,14 @@ export function reduceNamedNodes (namedNodes, node) {
   if (name) {
     if (name in namedNodes) {
       console.warn(`Duplicate node name '${name}'`)
-    } else if (!('expose' in node)) {
+    } else if (!(`expose` in node)) {
       console.warn(`No exposed interface for node named '${name}'`)
     } else {
       namedNodes[name] = node
     }
   }
 
-  if (node.type === 'element' && node.childDescriptors.length > 0) {
+  if (node.type === `element` && node.childDescriptors.length > 0) {
     namedNodes = node.childDescriptors.reduce(
       reduceNamedNodes, namedNodes
     )
@@ -141,7 +141,7 @@ export function bindOutput (streamDom, feedbackStreams, rawOutput) {
 }
 
 export class ComponentDescriptor extends NodeDescriptor {
-  get type () { return 'component' }
+  get type () { return `component` }
 
   constructor (name, rootDescriptor, output) {
     super(name)

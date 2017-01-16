@@ -8,17 +8,17 @@ suite(`streamDom`, function () {
   })
 
   suite(`renderItems`, function () {
-    test(`replacing entire list with each event`)
-    test(`replacing only changed items`)
+    test(`replacementStream used for unidentified items`)
+    test(`orderedListStream used for identified items`)
+  })
+
+  suite(`renderItems with identified items`, function () {
+    test(`orderedListStream used for identified items`)
   })
 
   suite(`renderItemStreams`, function () {
-    test(`render items with targeted updates`)
-    test(`moves items to match list order`)
-    test(`adds items to match the list`)
-    test(`removes items to match the list`)
-    test(`adds and removes items to match the list`)
-    test(`adds, moves, and removes items to match the list`)
+    test(`requires identified items`)
+    test(`orderedListStream used`)
   })
 
   suite(`mount`, function () {
