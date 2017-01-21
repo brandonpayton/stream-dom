@@ -9,26 +9,28 @@ export class DoublyLinkedList {
   }
 
   insertBefore (node, beforeNode) {
-    const previousNode = beforeNode ? beforeNode.previous : this.tail
-    const nextNode = beforeNode || null
-
-    previousNode === this.head && (this.head = node)
-    !beforeNode && (this.tail = node)
-
     this.remove(node)
 
+    const previousNode = beforeNode ? beforeNode.previous : this.tail
+    const nextNode = beforeNode || null
     node.previous = previousNode
     previousNode && (previousNode.next = node)
 
     node.next = nextNode
     nextNode && (nextNode.previous = node)
+
+    nextNode === this.head && (this.head = node)
+    nextNode === null && (this.tail = node)
   }
 
   remove (node) {
+    node === this.head && (this.head = node.next)
+    node === this.tail && (this.tail = node.previous)
+
     const previousNode = node.previous
     const nextNode = node.next
-    previousNode && (previousNode.next = previousNode)
-    nextNode && (nextNode.previous = nextNode)
+    previousNode && (previousNode.next = nextNode)
+    nextNode && (nextNode.previous = previousNode)
 
     node.previous = node.next = null
   }
