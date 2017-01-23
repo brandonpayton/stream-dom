@@ -1,6 +1,7 @@
 import { domEvent } from '@most/dom-event'
 
-import { NodeDescriptor, createNodeDescriptors } from '.'
+import { NodeDescriptor } from '.'
+import { createNodeDescriptors } from './util'
 import { isStream } from './stream'
 
 export function element (scope, args) {
@@ -115,8 +116,6 @@ export class DomNodeDescriptor extends NodeDescriptor {
      * @type {Node}
      */
     this.domNode = domNode
-
-    this.expose = new ExposedElement(domNode)
   }
 
   extractContents () {
@@ -154,6 +153,9 @@ export class ElementNodeDescriptor extends DomNodeDescriptor {
      * @type {NodeDescriptor[]|null}
      */
     this.childDescriptors = childDescriptors
+
+    // TODO: Document this.
+    this.expose = new ExposedElement(domNode)
   }
 }
 

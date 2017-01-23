@@ -4,7 +4,8 @@ import symbolObservable from 'symbol-observable'
 
 import { DoublyLinkedList, Node as ListNode } from '../util/doubly-linked-list'
 
-import { NodeDescriptor, createNodeDescriptors } from '.'
+import { NodeDescriptor } from '.'
+import { createNodeDescriptors } from './util'
 
 function stream (manageContent, scope, input$) {
   const { document } = scope

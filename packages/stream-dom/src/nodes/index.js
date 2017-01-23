@@ -3,9 +3,6 @@
  * @module nodes
  */
 
-import { replacementStream, isStream } from './stream'
-import { text } from './dom'
-
 /**
  * A node declaration
  */
@@ -26,8 +23,8 @@ export class NodeDeclaration {
    * @param config  - The stream-dom configuration
    * @param scope   - The stream-dom scope
    */
-  create (config, scope) {
-    this.createNode(this.creationArgs, config, scope)
+  create (scope) {
+    return this.createNode(scope, this.creationArgs)
   }
 }
 
@@ -92,27 +89,10 @@ export class NodeDescriptor {
    * @returns {Node}
    */
 
+  // TODO: Consider setting via constructor
   /**
    * @abstract
    * @property {?} expose - An optional property representing exposed
    * reference for a node.
    */
-}
-
-export function createNodeDescriptors (scope, declarationExpressions) {
-  return declarationExpressions.reduce(reduceExpressions, [])
-
-  function reduceExpressions (descriptors, expression) {
-    if (Array.isArray(expression)) {
-      expression.reduce(reduceExpressions, descriptors)
-    } else {
-      descriptors.push(
-        expression instanceof NodeDeclaration ? expression.create(scope) :
-        isStream(expression) ? replacementStream(scope, expression) :
-        text(scope, expression.toString())
-      )
-    }
-
-    return descriptors
-  }
 }

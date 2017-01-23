@@ -18,13 +18,31 @@ suite(`nodes/dom`, function () {
     test(`children and static attributes and properties`)
     test(`children and dynamic attributes and properties`)
     test(`children and static and dynamic attributes and properties`)
+  })
 
-    test(`ElementNodeDescriptor`)
+  suite(`DomNodeDescriptor`, function () {
+    test(`name property`)
+    test(`extractContents`)
+    test(`deleteContents`)
+    test(`getBeforeNode`)
+    test(`expose`)
+  })
+
+  suite(`ElementNodeDescriptor`, function () {
+    test(`name property`)
+    test(`childDescriptors`)
+
+    suite(`expose`, function () {
+      test(`domNode`)
+      test(`on`)
+    })
   })
 
   suite(`text`, function () {
     test(`creates a text node`)
+  })
 
-    test(`TextNodeDescriptor`)
+  suite(`TextNodeDescriptor`, function () {
+    test(`domNode`)
   })
 })
