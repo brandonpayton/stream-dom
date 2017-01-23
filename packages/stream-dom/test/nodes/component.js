@@ -2,7 +2,14 @@ suite(`nodes/component`, function () {
   test(`static props and output`)
   test(`dynamic props and output`)
   test(`feedback streams`)
-  test(`ComponentDescriptor`)
+
+  suite(`ComponentNodeDescriptor`, function () {
+    test(`name property`)
+    test(`extractContents`)
+    test(`deleteContents`)
+    test(`getBeforeNode`)
+    test(`expose`)
+  })
 
   suite(`input`, function () {
     suite(`propTypes validation`, function () {

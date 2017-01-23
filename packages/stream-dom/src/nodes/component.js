@@ -140,7 +140,7 @@ export function bindOutput (streamDom, feedbackStreams, rawOutput) {
   return output
 }
 
-export class ComponentDescriptor extends NodeDescriptor {
+export class ComponentNodeDescriptor extends NodeDescriptor {
   get type () { return `component` }
 
   constructor (name, rootDescriptor, output) {
