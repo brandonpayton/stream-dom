@@ -45,10 +45,6 @@ module.exports.createBaseConfig = function createBaseConfig (config) {
           ``,
           `node_modules`
         ],
-        alias: {
-          'stream-dom': `${__dirname}/src`,
-          'test-util': `${__dirname}/test-util`
-        },
         extensions: [ ``, `.js` ]
       }
     },
