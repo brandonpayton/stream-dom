@@ -1,4 +1,24 @@
+import { text, TextNodeDescriptor } from '../../src/nodes/dom'
+
+import { sync as syncSubject, hold as holdSubject } from 'most-subject'
+import { assert } from 'chai'
+
 suite(`nodes/dom`, function () {
+  let scope
+
+  setup(function () {
+    scope = {
+      document,
+      parentNamespaceUri: `http://www.w3.org/1999/xhtml`,
+      sharedRange: document.createRange(),
+      mounted$: holdSubject(1, syncSubject()),
+      destroy$: holdSubject(1, syncSubject())
+    }
+  })
+  teardown(function () {
+    scope.destroy$.next()
+  })
+
   suite(`element`, function () {
     test(`no children, attributes, or properties`)
     test(`static attributes`)
@@ -30,7 +50,8 @@ suite(`nodes/dom`, function () {
 
   suite(`ElementNodeDescriptor`, function () {
     test(`name property`)
-    test(`childDescriptors`)
+    test(`domNode property`)
+    test(`childDescriptors property`)
 
     suite(`expose`, function () {
       test(`domNode`)
@@ -39,10 +60,19 @@ suite(`nodes/dom`, function () {
   })
 
   suite(`text`, function () {
-    test(`creates a text node`)
+    test(`creates a text node`, function () {
+      const descriptor = text(scope, `expected text`)
+      assert.property(descriptor, `domNode`)
+      assert.propertyVal(descriptor.domNode, `nodeType`, Node.TEXT_NODE)
+      assert.propertyVal(descriptor.domNode, `nodeValue`, `expected text`)
+    })
   })
 
   suite(`TextNodeDescriptor`, function () {
-    test(`domNode`)
+    test(`domNode property`, function () {
+      const expectedNode = document.createTextNode(`expected`)
+      const descriptor = new TextNodeDescriptor(expectedNode)
+      assert.propertyVal(descriptor, `domNode`, expectedNode)
+    })
   })
 })

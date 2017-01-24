@@ -29,11 +29,11 @@ export function element (scope, args) {
   childDescriptors.forEach(descriptor => descriptor.insert(fragment))
   domNode.appendChild(fragment)
 
-  return new ElementNodeDescriptor({ domNode, childDescriptors })
+  return new ElementNodeDescriptor(name, domNode, childDescriptors)
 }
 
 export function text (scope, str) {
-  return () => new TextNodeDescriptor(scope.document.createTextNode(str))
+  return new TextNodeDescriptor(scope.document.createTextNode(str))
 }
 
 function processAttributes (scope, domNode, attributes) {
@@ -108,7 +108,7 @@ export class DomNodeDescriptor extends NodeDescriptor {
    * @param {NodeDescriptor[]|null} childDescriptors - The node's child descriptors
    * @param {Node} domNode - The DOM node.
    */
-  constructor (name, childDescriptors, domNode) {
+  constructor (name, domNode) {
     super(name)
 
     /**
@@ -145,7 +145,7 @@ class ExposedElement {
 export class ElementNodeDescriptor extends DomNodeDescriptor {
   get type () { return `element` }
 
-  constructor (name, childDescriptors, domNode) {
+  constructor (name, domNode, childDescriptors) {
     super(name, domNode)
 
     /**
@@ -164,4 +164,8 @@ export class ElementNodeDescriptor extends DomNodeDescriptor {
  */
 export class TextNodeDescriptor extends DomNodeDescriptor {
   get type () { return `text` }
+
+  constructor (textNode) {
+    super(undefined, textNode)
+  }
 }
