@@ -1,6 +1,7 @@
 import { NodeDeclaration } from '.'
-import { replacementStream, isStream } from './stream'
+import { replacementStream } from './stream'
 import { text } from './dom'
+import { isStream } from '../kind'
 
 export function createNodeDescriptors (scope, declarationExpressions) {
   return declarationExpressions.reduce(reduceExpressions, [])

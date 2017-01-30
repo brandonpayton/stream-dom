@@ -1,10 +1,11 @@
-import { Stream, just, never } from 'most'
+import { Stream, just, never, map } from '@most/core'
 import { sync as syncSubject, hold as holdSubject } from 'most-subject'
 
 import { NodeDeclaration } from './nodes'
 import { element } from './nodes/dom'
 import { configure as configureComponent } from './nodes/component'
 import { replacementStream, orderedListStream } from './nodes/stream'
+import { toArray } from './kind'
 
 // TODO: Relocate to JSX transform
 export const defaultNamespaceUriMap = {
@@ -13,111 +14,106 @@ export const defaultNamespaceUriMap = {
   xlink: `http://www.w3.org/1999/xlink`
 }
 
-export function configure ({
-  defaultNamespaceUri = `http://www.w3.org/1999/xhtml`
-} = {}) {
-  const config = { defaultNamespaceUri }
+const defaultNamespaceUri = `http://www.w3.org/1999/xhtml`
 
-  class StreamDom extends Stream {
-    constructor (stream) {
-      super(stream.source)
-    }
-    prop (name) {
-      return this.map(a => a[name])
-    }
-    // TODO: Consider how to handle or avoid repeated calls to methods like list()
-    list () {
-      return this instanceof StreamDomList ? this : new StreamDomList(this)
-    }
-    render (f) {
-      return this.map(f)
-    }
-    mount (parentNode, beforeNode) {
-      const mountedSubject$ = holdSubject(1, syncSubject())
-      const destroySubject$ = holdSubject(1, syncSubject())
-      // End the mounted stream when there is a destroy event so a call to
-      // `dispose` will stop mounting if it hasn't already occurred.
-      const mounted$ = mountedSubject$.until(destroySubject$).multicast()
-      const destroy$ = destroySubject$.take(1).multicast()
+export function prop (key, stream) {
+  return map(a => a[key], stream)
+}
 
-      const document = parentNode.ownerDocument
-      const scope = {
-        document,
-        parentNamespaceUri: config.defaultNamespaceUri,
-        sharedRange: document.createRange(),
-        mounted$,
-        destroy$
-      }
+export function render (f, stream) {
+  // TODO: Consider warning when stream produces anything other than a node declaration
+  return map(f, stream)
+}
 
-      const rootDescriptor = replacementStream(scope, this)
-      rootDescriptor.insert(parentNode, beforeNode)
+export function renderItems (args, stream) {
+  const { render, identify } = typeof args === `object` ? args : { render: args }
 
-      // Destroy the UI if this stream ends
-      this.drain().then(() => destroySubject$.next())
+  return identify === undefined
+    // TODO: Consider whether non-iterable should result in an error
+    ? map(items => toArray(items).map(render), stream)
+    : renderItemStreams({ identify, render }, stream)
+}
 
-      // Only remove the root node when the root content stream ends,
-      // allowing internal destruction logic to run first
-      rootDescriptor.content$.drain().then(() => rootDescriptor.remove())
+export function renderItemStreams ({ identify, render }, stream) {
+  const orderedListDeclaration = new NodeDeclaration(orderedListStream, {
+    getKey: identify,
+    renderItemStream: render,
+    list$: this
+  })
+  return just(orderedListDeclaration).concat(never)
+}
 
-      return {
-        rootDescriptor,
-        dispose () {
-          destroySubject$.next()
-        }
-      }
-    }
+export function mount (parentNode, beforeNode, stream) {
+  const mountedSubject$ = holdSubject(1, syncSubject())
+  const destroySubject$ = holdSubject(1, syncSubject())
+  // End the mounted stream when there is a destroy event so a call to
+  // `dispose` will stop mounting if it hasn't already occurred.
+  const mounted$ = mountedSubject$.until(destroySubject$).multicast()
+  const destroy$ = destroySubject$.take(1).multicast()
+
+  const document = parentNode.ownerDocument
+  const scope = {
+    document,
+    parentNamespaceUri: defaultNamespaceUri,
+    sharedRange: document.createRange(),
+    mounted$,
+    destroy$
   }
 
-  class StreamDomList extends StreamDom {
-    identifyItems (f) {
-      return new StreamDomIdentifiedList(this, f)
-    }
-    renderItems (f) {
-      return this.map(items => items.map(f))
-    }
-  }
+  const rootDescriptor = replacementStream(scope, this)
+  rootDescriptor.insert(parentNode, beforeNode)
 
-  class StreamDomIdentifiedList extends StreamDomList {
-    constructor (stream, identifyItem) {
-      super(stream)
-      this._identifyItem = identifyItem
-    }
-    renderItems (f) {
-      return this.renderItemStreams(item$ => item$.map(f))
-    }
-    renderItemStreams (f) {
-      const orderedListDeclaration = new NodeDeclaration(orderedListStream, {
-        getKey: this._identifyItem,
-        renderItemStream: f,
-        list$: this
-      })
-      return just(orderedListDeclaration).concat(never)
-    }
-  }
+  // Destroy the UI if this stream ends
+  this.drain().then(() => destroySubject$.next())
 
-  function streamDom (stream) {
-    return stream instanceof StreamDom ? stream : new StreamDom(stream)
-  }
-
-  // Add `d` to `streamDom` export so it can be used
-  // by transpiled JSX without requiring an additional import.
-  streamDom.d = function d (tag, args) {
-    if (typeof tag === `string`) {
-      return declareElement(tag, args)
-    } else if (typeof tag === `function`) {
-      return declareComponent(tag, args)
-    } else {
-      throw new TypeError(`Unsupported tag type '${tag}'`)
-    }
-  }
+  // Only remove the root node when the root content stream ends,
+  // allowing internal destruction logic to run first
+  rootDescriptor.content$.drain().then(() => rootDescriptor.remove())
 
   return {
-    streamDom,
-    component: configureComponent({ streamDom, defaultNamespaceUri })
+    rootDescriptor,
+    dispose () {
+      destroySubject$.next()
+    }
   }
 }
 
-export const { streamDom, component } = configure()
+class StreamDom extends Stream {
+  constructor (stream) {
+    super(stream.source)
+  }
+  prop (key) {
+    return prop(key, this)
+  }
+  render (f) {
+    return render(f, this)
+  }
+  renderItems (args) {
+    return renderItems(args, this)
+  }
+  renderItemStreams (args) {
+    return renderItemStreams(args, this)
+  }
+  mount (parentNode, beforeNode) {
+    return mount(parentNode, beforeNode, this)
+  }
+}
+
+function streamDom (stream) {
+  return stream instanceof StreamDom ? stream : new StreamDom(stream)
+}
+
+// Add `declare` to `streamDom` export so it can be used
+// by transpiled JSX without requiring an additional import.
+streamDom.declare = function declare (tag, args) {
+  if (typeof tag === `string`) {
+    return declareElement(tag, args)
+  } else if (typeof tag === `function`) {
+    return declareComponent(tag, args)
+  } else {
+    throw new TypeError(`Unsupported tag type '${tag}'`)
+  }
+}
 
 function declareElement (name, {
   namespaceName,
@@ -137,3 +133,6 @@ function declareElement (name, {
 function declareComponent (Component, props) {
   return new NodeDeclaration(Component, props)
 }
+
+export { streamDom }
+export const component = configureComponent({ streamDom, defaultNamespaceUri })

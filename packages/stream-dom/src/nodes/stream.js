@@ -1,11 +1,10 @@
 import { merge } from 'most'
 import { sync } from 'most-subject'
-import symbolObservable from 'symbol-observable'
 
-import { DoublyLinkedList, Node as ListNode } from '../util/doubly-linked-list'
+import { DoublyLinkedList, Node as ListNode } from '../doubly-linked-list'
 
 import { NodeDescriptor } from '.'
-import { createNodeDescriptors } from './util'
+import { createNodeDescriptors } from './helpers'
 
 function stream (manageContent, scope, input$) {
   const { document } = scope
@@ -188,8 +187,4 @@ class StreamNodeDescriptor extends NodeDescriptor {
   getBeforeNode () {
     return this.domStartNode
   }
-}
-
-export function isStream (candidate) {
-  return candidate && !!candidate[symbolObservable]
 }

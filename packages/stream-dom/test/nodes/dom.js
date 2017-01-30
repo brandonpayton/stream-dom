@@ -40,25 +40,6 @@ suite(`nodes/dom`, function () {
     test(`children and static and dynamic attributes and properties`)
   })
 
-  suite(`DomNodeDescriptor`, function () {
-    test(`name property`)
-    test(`extractContents`)
-    test(`deleteContents`)
-    test(`getBeforeNode`)
-    test(`expose`)
-  })
-
-  suite(`ElementNodeDescriptor`, function () {
-    test(`name property`)
-    test(`domNode property`)
-    test(`childDescriptors property`)
-
-    suite(`expose`, function () {
-      test(`domNode`)
-      test(`on`)
-    })
-  })
-
   suite(`text`, function () {
     test(`creates a text node`, function () {
       const descriptor = text(scope, `expected text`)
@@ -68,11 +49,26 @@ suite(`nodes/dom`, function () {
     })
   })
 
-  suite(`TextNodeDescriptor`, function () {
-    test(`domNode property`, function () {
-      const expectedNode = document.createTextNode(`expected`)
-      const descriptor = new TextNodeDescriptor(expectedNode)
-      assert.propertyVal(descriptor, `domNode`, expectedNode)
-    })
+  suite(`DomNodeDescriptor`, function () {
+    test(`properties`)
+    // name
+    // domNode
+
+    test(`extractContents`)
+    test(`deleteContents`)
+    test(`getBeforeNode`)
+  })
+
+  test(`ElementNodeDescriptor`, function () {
+    // name
+    // domNode
+    // childDescriptors
+    // expose
+  })
+
+  test(`TextNodeDescriptor`, function () {
+    const expectedNode = document.createTextNode(`expected`)
+    const descriptor = new TextNodeDescriptor(expectedNode)
+    assert.propertyVal(descriptor, `domNode`, expectedNode)
   })
 })

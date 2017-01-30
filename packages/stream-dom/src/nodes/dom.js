@@ -1,8 +1,8 @@
 import { domEvent } from '@most/dom-event'
 
 import { NodeDescriptor } from '.'
-import { createNodeDescriptors } from './util'
-import { isStream } from './stream'
+import { createNodeDescriptors } from './helpers'
+import { isStream } from '../kind'
 
 export function element (scope, args) {
   const { document, parentNamespaceUri } = scope

@@ -5,9 +5,9 @@ module.exports = function(config) {
 
   config.set(Object.assign({}, baseConfig, {
     plugins: baseConfig.plugins.concat(
-      require('karma-phantomjs-launcher')
+      require('karma-chrome-launcher')
     ),
 
-    browsers: [ 'PhantomJS' ]
+    browsers: [ 'Chrome' ]
   }))
 }
