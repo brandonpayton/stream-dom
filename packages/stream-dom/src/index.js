@@ -1,10 +1,9 @@
-import { Stream, just, never, map } from '@most/core'
+import { Stream, just, never, map } from 'most'
 import { sync as syncSubject, hold as holdSubject } from 'most-subject'
 
-import { NodeDeclaration } from './nodes'
-import { element } from './nodes/dom'
-import { configure as configureComponent } from './nodes/component'
-import { replacementStream, orderedListStream } from './nodes/stream'
+import { NodeDeclaration } from './node'
+import { createElementNode } from './node-dom'
+import { replacementStream, orderedListStream } from './node-stream'
 import { toArray } from './kind'
 
 // TODO: Relocate to JSX transform
@@ -14,7 +13,7 @@ export const defaultNamespaceUriMap = {
   xlink: `http://www.w3.org/1999/xlink`
 }
 
-const defaultNamespaceUri = `http://www.w3.org/1999/xhtml`
+export const defaultNamespaceUri = `http://www.w3.org/1999/xhtml`
 
 export function prop (key, stream) {
   return map(a => a[key], stream)
@@ -34,16 +33,16 @@ export function renderItems (args, stream) {
     : renderItemStreams({ identify, render }, stream)
 }
 
-export function renderItemStreams ({ identify, render }, stream) {
+export function renderItemStreams ({ identify, render }, listStream) {
   const orderedListDeclaration = new NodeDeclaration(orderedListStream, {
     getKey: identify,
     renderItemStream: render,
-    list$: this
+    list$: listStream
   })
   return just(orderedListDeclaration).concat(never)
 }
 
-export function mount (parentNode, beforeNode, stream) {
+export function mount (parentNode, beforeNode, nodeDeclarationStream) {
   const mountedSubject$ = holdSubject(1, syncSubject())
   const destroySubject$ = holdSubject(1, syncSubject())
   // End the mounted stream when there is a destroy event so a call to
@@ -60,11 +59,13 @@ export function mount (parentNode, beforeNode, stream) {
     destroy$
   }
 
-  const rootDescriptor = replacementStream(scope, this)
+  const rootDescriptor = replacementStream(scope, nodeDeclarationStream)
   rootDescriptor.insert(parentNode, beforeNode)
 
-  // Destroy the UI if this stream ends
-  this.drain().then(() => destroySubject$.next())
+  setTimeout(() => mountedSubject$.next())
+
+  // Destroy the UI if the declaration stream ends
+  nodeDeclarationStream.drain().then(() => destroySubject$.next())
 
   // Only remove the root node when the root content stream ends,
   // allowing internal destruction logic to run first
@@ -78,7 +79,7 @@ export function mount (parentNode, beforeNode, stream) {
   }
 }
 
-class StreamDom extends Stream {
+export class StreamDom extends Stream {
   constructor (stream) {
     super(stream.source)
   }
@@ -99,13 +100,15 @@ class StreamDom extends Stream {
   }
 }
 
-function streamDom (stream) {
+export function streamDom (stream) {
   return stream instanceof StreamDom ? stream : new StreamDom(stream)
 }
 
 // Add `declare` to `streamDom` export so it can be used
 // by transpiled JSX without requiring an additional import.
-streamDom.declare = function declare (tag, args) {
+streamDom.declare = declare
+
+export function declare (tag, args) {
   if (typeof tag === `string`) {
     return declareElement(tag, args)
   } else if (typeof tag === `function`) {
@@ -124,7 +127,7 @@ function declareElement (name, {
   if (name === ``) {
     throw new RangeError(`Tag name must not be the empty string`)
   } else {
-    return new NodeDeclaration(element, {
+    return new NodeDeclaration(createElementNode, {
       namespaceName, name, attrs, props, children
     })
   }
@@ -134,5 +137,4 @@ function declareComponent (Component, props) {
   return new NodeDeclaration(Component, props)
 }
 
-export { streamDom }
-export const component = configureComponent({ streamDom, defaultNamespaceUri })
+export { component } from './node-component'

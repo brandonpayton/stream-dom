@@ -1,4 +1,4 @@
-import { DoublyLinkedList, Node } from '../../src/util/doubly-linked-list'
+import { DoublyLinkedList, Node } from '../src/doubly-linked-list'
 import { assert } from 'chai'
 
 suite(`doubly-linked-list`, function () {

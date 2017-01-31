@@ -1,6 +1,6 @@
-import { NodeDescriptor } from '.'
-import { isStream } from '../kind'
-import { streamDom } from '..'
+import { NodeDescriptor } from './node'
+import { isStream } from './kind'
+import { streamDom, defaultNamespaceUri } from './index'
 
 import { proxy } from 'most-proxy'
 
@@ -33,23 +33,21 @@ export const propTypes = {
   feedback
 }
 
-export function configure ({ defaultNamespaceUri }) {
-  return function component (propsDeclaration, declareStructure, createOutput) {
-    return function createComponent (scope, { name, props: originalProps }) {
-      // TODO: Wrap unwrapped input streams
-      const { props, feedbackStreams } =
-        bindInput(streamDom, propsDeclaration, originalProps)
+export function component (propsDeclaration, declareStructure, createOutput) {
+  return function createComponentNode (scope, { name, props: originalProps }) {
+    // TODO: Wrap unwrapped input streams
+    const { props, feedbackStreams } =
+      bindInput(streamDom, propsDeclaration, originalProps)
 
-      const declaredStructure = declareStructure(props)
+    const declaredStructure = declareStructure(props)
 
-      const { rootDescriptor, namedNodes } =
-        createStructure(defaultNamespaceUri, scope, declaredStructure)
+    const { rootDescriptor, namedNodes } =
+      createStructure(defaultNamespaceUri, scope, declaredStructure)
 
-      const output =
-        bindOutput(streamDom, feedbackStreams, createOutput(namedNodes))
+    const output =
+      bindOutput(streamDom, feedbackStreams, createOutput(namedNodes))
 
-      return new ComponentNodeDescriptor(name, rootDescriptor, output)
-    }
+    return new ComponentNodeDescriptor(name, rootDescriptor, output)
   }
 }
 

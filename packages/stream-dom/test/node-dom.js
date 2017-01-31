@@ -1,4 +1,4 @@
-import { text, TextNodeDescriptor } from '../../src/nodes/dom'
+import { createTextNode, TextNodeDescriptor } from '../src/node-dom'
 
 import { sync as syncSubject, hold as holdSubject } from 'most-subject'
 import { assert } from 'chai'
@@ -19,7 +19,7 @@ suite(`nodes/dom`, function () {
     scope.destroy$.next()
   })
 
-  suite(`element`, function () {
+  suite(`createElementNode`, function () {
     test(`no children, attributes, or properties`)
     test(`static attributes`)
     test(`dynamic attributes`)
@@ -40,9 +40,9 @@ suite(`nodes/dom`, function () {
     test(`children and static and dynamic attributes and properties`)
   })
 
-  suite(`text`, function () {
+  suite(`createTextNode`, function () {
     test(`creates a text node`, function () {
-      const descriptor = text(scope, `expected text`)
+      const descriptor = createTextNode(scope, `expected text`)
       assert.property(descriptor, `domNode`)
       assert.propertyVal(descriptor.domNode, `nodeType`, Node.TEXT_NODE)
       assert.propertyVal(descriptor.domNode, `nodeValue`, `expected text`)

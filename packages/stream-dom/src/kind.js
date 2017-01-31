@@ -1,4 +1,4 @@
-import { Stream } from '@most/core'
+import { Stream } from 'most'
 
 export function isIterable (o) {
   return (

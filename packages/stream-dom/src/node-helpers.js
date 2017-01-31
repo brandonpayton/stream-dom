@@ -1,7 +1,7 @@
-import { NodeDeclaration } from '.'
-import { replacementStream } from './stream'
-import { text } from './dom'
-import { isStream } from '../kind'
+import { NodeDeclaration } from './node'
+import { replacementStream } from './node-stream'
+import { createTextNode } from './node-dom'
+import { isStream } from './kind'
 
 export function createNodeDescriptors (scope, declarationExpressions) {
   return declarationExpressions.reduce(reduceExpressions, [])
@@ -13,7 +13,7 @@ export function createNodeDescriptors (scope, declarationExpressions) {
       descriptors.push(
         expression instanceof NodeDeclaration ? expression.create(scope) :
         isStream(expression) ? replacementStream(scope, expression) :
-        text(scope, expression.toString())
+        createTextNode(scope, expression.toString())
       )
     }
 

@@ -1,12 +1,12 @@
 import { merge } from 'most'
 import { sync } from 'most-subject'
 
-import { DoublyLinkedList, Node as ListNode } from '../doubly-linked-list'
+import { DoublyLinkedList, Node as ListNode } from './doubly-linked-list'
 
-import { NodeDescriptor } from '.'
-import { createNodeDescriptors } from './helpers'
+import { NodeDescriptor } from './node'
+import { createNodeDescriptors } from './node-helpers'
 
-function stream (manageContent, scope, input$) {
+function createStreamNode (manageContent, scope, input$) {
   const { document } = scope
   const domStartNode = document.createComment(``)
   const domEndNode = document.createComment(``)
@@ -21,8 +21,8 @@ function stream (manageContent, scope, input$) {
   )
 }
 
-export function replacementStream (scope, input$) {
-  return stream(replaceOnContentEvent, scope, input$)
+export function createReplacementNode (scope, input$) {
+  return createStreamNode(replaceOnContentEvent, scope, input$)
 
   function replaceOnContentEvent (scope, domStartNode, domEndNode, children$) {
     return children$.map(children => {
@@ -45,12 +45,12 @@ export function replacementStream (scope, input$) {
   }
 }
 
-export function orderedListStream (scope, {
+export function createOrderedListNode (scope, {
   getKey,
   renderItemStream,
   list$
 }) {
-  return stream(updateListOnContentEvent, scope, list$)
+  return createStreamNode(updateListOnContentEvent, scope, list$)
 
   function updateListOnContentEvent (scope, domStartNode, domEndNode, list$) {
     const parentDestroy$ = scope.destroy$
@@ -147,7 +147,7 @@ export function orderedListStream (scope, {
   }
 }
 
-class StreamNodeDescriptor extends NodeDescriptor {
+export class StreamNodeDescriptor extends NodeDescriptor {
   get type () { return `stream` }
 
   constructor (sharedRange, domStartNode, domEndNode, childDescriptors$) {

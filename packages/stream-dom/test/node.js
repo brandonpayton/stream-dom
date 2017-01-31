@@ -1,6 +1,6 @@
-import { NodeDeclaration, NodeDescriptor } from '../../src/nodes'
+import { NodeDeclaration, NodeDescriptor } from '../src/node'
 
-import { spy } from '../../test-util/spy'
+import { spy } from '../test-util/spy'
 
 import { assert } from 'chai'
 

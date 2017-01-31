@@ -1,10 +1,10 @@
 import { domEvent } from '@most/dom-event'
 
-import { NodeDescriptor } from '.'
-import { createNodeDescriptors } from './helpers'
-import { isStream } from '../kind'
+import { NodeDescriptor } from './node'
+import { createNodeDescriptors } from './node-helpers'
+import { isStream } from './kind'
 
-export function element (scope, args) {
+export function createElementNode (scope, args) {
   const { document, parentNamespaceUri } = scope
   const {
     name,
@@ -32,7 +32,7 @@ export function element (scope, args) {
   return new ElementNodeDescriptor(name, domNode, childDescriptors)
 }
 
-export function text (scope, str) {
+export function createTextNode (scope, str) {
   return new TextNodeDescriptor(scope.document.createTextNode(str))
 }
 
