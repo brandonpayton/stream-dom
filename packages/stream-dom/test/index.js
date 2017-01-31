@@ -9,32 +9,47 @@ import {
   streamDom,
   component
 } from '../src/index'
+import { NodeDeclaration } from '../src/node'
+import { createReplacementNode, createOrderedListNode } from '../src/node-stream'
 
 import { just, reduce } from 'most'
+
+const lastValue = (memo, value) => value
 
 suite(`streamDom`, function () {
   test(`prop`, function () {
     const expected = {}
     const prop$ = prop(`expected`, just({ expected }))
-    const promise = reduce(
-      (memo, value) => value,
-      null,
-      prop$
-    )
-    return promise.then(
+    return reduce(lastValue, null, prop$).then(
       actual => assert.strictEqual(actual, expected)
     )
   })
 
-  suite(`render`, function () {
-    test(`text`)
-    test(`element`)
-    test(`component`)
+  test(`render`, function () {
+    const expected = {}
+    const rendered$ = render(actual => ({ actual }), just(expected))
+    return reduce(lastValue, null, rendered$).then(
+      result => assert.strictEqual(result.actual, expected)
+    )
   })
 
+  test(`renderItems with unidentified items`, function () {
+    const fakeCreate = function () {}
+    const items = [ 1, 2, 3 ]
+    const itemToDeclaration = item => new NodeDeclaration(fakeCreate, item)
+    const declarations$ = renderItems(itemToDeclaration, just(items))
+    return reduce(lastValue, null, declarations$).then(actual => {
+      assert.isArray(actual)
+      assert.deepEqual(
+        actual.map(declaration => declaration.creationArgs),
+        items
+      )
+    })
+  })
   suite(`renderItems`, function () {
-    test(`replacementStream used for unidentified items`)
-    test(`orderedListStream used for identified items`)
+    test(`function argument and unidentified items`)
+    test(`object argument and unidentified items`)
+    test(`object argument and identified items`)
   })
 
   suite(`renderItems with identified items`, function () {

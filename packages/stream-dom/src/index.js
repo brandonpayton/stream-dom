@@ -27,10 +27,15 @@ export function render (f, stream) {
 export function renderItems (args, stream) {
   const { render, identify } = typeof args === `object` ? args : { render: args }
 
-  return identify === undefined
+  if (identify === undefined) {
     // TODO: Consider whether non-iterable should result in an error
-    ? map(items => toArray(items).map(render), stream)
-    : renderItemStreams({ identify, render }, stream)
+    return map(items => toArray(items).map(render), stream)
+  } else {
+    return renderItemStreams(
+      { identify, render: item$ => item$.map(render) },
+      stream
+    )
+  }
 }
 
 export function renderItemStreams ({ identify, render }, listStream) {
