@@ -3,7 +3,7 @@ import { sync as syncSubject, hold as holdSubject } from 'most-subject'
 
 import { NodeDeclaration } from './node'
 import { createElementNode } from './node-dom'
-import { replacementStream, orderedListStream } from './node-stream'
+import { createReplacementNode, createOrderedListNode } from './node-stream'
 import { toArray } from './kind'
 
 // TODO: Relocate to JSX transform
@@ -25,6 +25,7 @@ export function render (f, stream) {
 }
 
 export function renderItems (args, stream) {
+  // TODO: Rename to identifyItem and renderItem for clarity?
   const { render, identify } = typeof args === `object` ? args : { render: args }
 
   if (identify === undefined) {
@@ -37,9 +38,9 @@ export function renderItems (args, stream) {
     )
   }
 }
-
+// TODO: Rename to identifyItem and renderItem for clarity?
 export function renderItemStreams ({ identify, render }, listStream) {
-  const orderedListDeclaration = new NodeDeclaration(orderedListStream, {
+  const orderedListDeclaration = new NodeDeclaration(createOrderedListNode, {
     getKey: identify,
     renderItemStream: render,
     list$: listStream
@@ -47,13 +48,48 @@ export function renderItemStreams ({ identify, render }, listStream) {
   return just(orderedListDeclaration).concat(never)
 }
 
-export function mount (parentNode, beforeNode, nodeDeclarationStream) {
-  const mountedSubject$ = holdSubject(1, syncSubject())
-  const destroySubject$ = holdSubject(1, syncSubject())
-  // End the mounted stream when there is a destroy event so a call to
-  // `dispose` will stop mounting if it hasn't already occurred.
-  const mounted$ = mountedSubject$.until(destroySubject$).multicast()
-  const destroy$ = destroySubject$.take(1).multicast()
+// TODO: Settle on "destroy" or "dispose"
+export function mount (parentNode, beforeNode, nodeDeclarations$) {
+  const mounted$ = holdSubject(1, syncSubject())
+  const destroy$ = holdSubject(1, syncSubject())
+
+  // TODO: Explain the sync/async disposal reason for the strange use of promises
+  let resolveMount
+  let rejectMount
+  const promiseToMount = new Promise((resolve, reject) => {
+    resolveMount = resolve
+    rejectMount = reject
+  })
+
+  let resolveDispose
+  let rejectDispose
+  const promiseToDispose = new Promise((resolve, reject) => {
+    resolveDispose = resolve
+    rejectDispose = reject
+  })
+
+  let disposed = false
+  const mount = () => {
+    if (disposed) {
+      rejectMount()
+    } else {
+      mounted$.next()
+      resolveMount()
+    }
+  }
+  const dispose = () => {
+    if (!disposed) {
+      disposed = true
+
+      try {
+        destroy$.next()
+        rootDescriptor.remove()
+        resolveDispose()
+      } catch (error) {
+        rejectDispose(error)
+      }
+    }
+  }
 
   const document = parentNode.ownerDocument
   const scope = {
@@ -63,24 +99,19 @@ export function mount (parentNode, beforeNode, nodeDeclarationStream) {
     mounted$,
     destroy$
   }
-
-  const rootDescriptor = replacementStream(scope, nodeDeclarationStream)
+  const content$ = nodeDeclarations$.until(destroy$).multicast()
+  const rootDescriptor = createReplacementNode(scope, nodeDeclarations$)
   rootDescriptor.insert(parentNode, beforeNode)
 
-  setTimeout(() => mountedSubject$.next())
-
-  // Destroy the UI if the declaration stream ends
-  nodeDeclarationStream.drain().then(() => destroySubject$.next())
-
-  // Only remove the root node when the root content stream ends,
-  // allowing internal destruction logic to run first
-  rootDescriptor.content$.drain().then(() => rootDescriptor.remove())
+  setTimeout(mount)
+  content$.drain().then(dispose)
 
   return {
     rootDescriptor,
-    dispose () {
-      destroySubject$.next()
-    }
+    nodeDeclarations$,
+    promiseToMount,
+    promiseToDispose,
+    dispose
   }
 }
 
@@ -124,7 +155,7 @@ export function declare (tag, args) {
 }
 
 function declareElement (name, {
-  namespaceName,
+  namespaceUri,
   attrs,
   props,
   children
@@ -133,7 +164,7 @@ function declareElement (name, {
     throw new RangeError(`Tag name must not be the empty string`)
   } else {
     return new NodeDeclaration(createElementNode, {
-      namespaceName, name, attrs, props, children
+      namespaceUri, name, attrs, props, children
     })
   }
 }

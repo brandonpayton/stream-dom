@@ -18,6 +18,8 @@ export function toArray (o) {
   } else if (isIterable(o)) {
     return Array.from(o)
   } else {
-    throw new Error(`Unable to convert object to an Array`)
+    return [ o ]
+    // TODO: Reconsider whether this should be an error
+    // throw new Error(`Unable to convert object to an Array`)
   }
 }

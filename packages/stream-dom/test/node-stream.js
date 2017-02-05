@@ -1,10 +1,10 @@
 suite(`nodes/stream`, function () {
   // TODO
-  suite(`replacementStream`, function () {
+  suite(`createReplacementNode`, function () {
     test(`replaces entire contents for each event`)
   })
 
-  suite(`orderedListStream`, function () {
+  suite(`createOrderedListNode`, function () {
     test(`render items with targeted updates`)
     test(`moves items to match list order`)
     test(`adds items to match the list`)

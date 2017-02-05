@@ -5,13 +5,14 @@ import { DoublyLinkedList, Node as ListNode } from './doubly-linked-list'
 
 import { NodeDescriptor } from './node'
 import { createNodeDescriptors } from './node-helpers'
+import { toArray } from 'kind'
 
 function createStreamNode (manageContent, scope, input$) {
   const { document } = scope
   const domStartNode = document.createComment(``)
   const domEndNode = document.createComment(``)
 
-  const content$ = manageContent(scope, domEndNode, input$)
+  const content$ = manageContent(scope, domStartNode, domEndNode, input$)
     .until(scope.destroy$)
     .multicast()
   content$.drain()
@@ -25,7 +26,7 @@ export function createReplacementNode (scope, input$) {
   return createStreamNode(replaceOnContentEvent, scope, input$)
 
   function replaceOnContentEvent (scope, domStartNode, domEndNode, children$) {
-    return children$.map(children => {
+    return children$.map(toArray).map(children => {
       const childScope = Object.assign({}, scope, {
         destroy$: merge(children$, scope.destroy$).take(1).multicast()
       })
@@ -176,7 +177,7 @@ export class StreamNodeDescriptor extends NodeDescriptor {
   }
 
   deleteContents () {
-    if (this.domStartNode.parentNode === null) {
+    if (this.domStartNode.parentNode !== null) {
       const { sharedRange } = this
       sharedRange.setStartBefore(this.domStartNode)
       sharedRange.setEndAfter(this.domEndNode)
