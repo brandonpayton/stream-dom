@@ -8,7 +8,7 @@ import {
   declare,
   streamDom,
   StreamDom,
-  component
+  component as componentExport
 } from '../src/index'
 import { NodeDeclaration } from '../src/node'
 import {
@@ -16,6 +16,7 @@ import {
   StreamNodeDescriptor
 } from '../src/node-stream'
 import { createElementNode } from '../src/node-dom'
+import { component } from '../src/node-component'
 import { isStream } from '../src/kind'
 
 import { just, take, never, reduce, Stream } from 'most'
@@ -236,5 +237,9 @@ suite(`streamDom`, function () {
       const streamDomStream = streamDom(just(123))
       assert.strictEqual(streamDom(streamDomStream), streamDomStream)
     })
+  })
+
+  test(`exports component`, function () {
+    assert.strictEqual(componentExport, component)
   })
 })
