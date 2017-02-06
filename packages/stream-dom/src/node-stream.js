@@ -58,6 +58,7 @@ export function createOrderedListNode (scope, {
     const update$ = list$.map(itemList => {
       const itemMap = itemList.reduce(
         (map, item) => map.set(getKey(item), item),
+        // TODO: Consider eliminating use of Map
         new Map()
       )
       return { itemList, itemMap }
@@ -66,6 +67,7 @@ export function createOrderedListNode (scope, {
 
     // TODO: Address high complexity and re-enable complexity rule
     // eslint-disable-next-line complexity
+    // TODO: Investigate improved patching strategy
     return update$.scan((nodeState, update) => {
       const { nodeList, nodeMap } = nodeState
       const { itemList, itemMap } = update
