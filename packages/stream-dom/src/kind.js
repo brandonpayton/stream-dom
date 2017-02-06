@@ -1,12 +1,5 @@
 import { Stream } from 'most'
-
-export function isIterable (o) {
-  return (
-    typeof o === `object` &&
-    typeof Symbol !== `undefined` &&
-    Symbol.iterable in o
-  )
-}
+import { isIterable } from 'most/lib/iterable'
 
 export function isStream (o) {
   return o instanceof Stream
@@ -15,7 +8,7 @@ export function isStream (o) {
 export function toArray (o) {
   if (Array.isArray(o)) {
     return o
-  } else if (isIterable(o)) {
+  } else if (isIterable(o) && typeof o !== `string`) {
     return Array.from(o)
   } else {
     return [ o ]
