@@ -8,7 +8,7 @@ export function createElementNode (scope, args) {
   const { document, parentNamespaceUri } = scope
   const {
     name,
-    attributes = {},
+    attributes = [],
     properties = {},
     children = []
   } = args

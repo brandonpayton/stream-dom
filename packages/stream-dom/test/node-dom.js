@@ -1,4 +1,9 @@
-import { createTextNode, TextNodeDescriptor } from '../src/node-dom'
+import {
+  createElementNode,
+  createTextNode,
+  ElementNodeDescriptor,
+  TextNodeDescriptor
+} from '../src/node-dom'
 
 import { sync as syncSubject, hold as holdSubject } from 'most-subject'
 import { assert } from 'chai'
@@ -20,8 +25,33 @@ suite(`nodes/dom`, function () {
   })
 
   suite(`createElementNode`, function () {
-    test(`no children, attributes, or properties`)
-    test(`static attributes`)
+    test(`returns an ElementNodeDescriptor`, function () {
+      const actual = createElementNode(scope, { name: `div` })
+      assert.instanceOf(actual, ElementNodeDescriptor)
+    })
+    test(`no children, attributes, or properties`, function () {
+      const descriptor = createElementNode(scope, { name: `section` })
+      const { domNode } = descriptor
+      assert.strictEqual(domNode.nodeType, Node.ELEMENT_NODE)
+      assert.strictEqual(domNode.tagName, `SECTION`)
+    })
+    test(`static attributes`, function () {
+      const expectedAttributes = [
+        { name: `type`, value: `checkbox` },
+        { name: `name`, value: `test-checkbox` },
+        { name: `checked`, value: `true` }
+        // TODO: Test with namespaced attributes
+      ]
+      const descriptor = createElementNode(scope, {
+        name: `input`,
+        attributes: expectedAttributes
+      })
+      const { domNode } = descriptor
+
+      expectedAttributes.forEach(a => {
+        assert.strictEqual(domNode.getAttribute(a.name), a.value)
+      })
+    })
     test(`dynamic attributes`)
     test(`static and dynamic attributes`)
     test(`static properties`)
