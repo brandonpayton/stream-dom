@@ -1,4 +1,4 @@
-import { Stream, just, never, map } from 'most'
+import { just, never, map } from 'most'
 import { sync as syncSubject, hold as holdSubject } from 'most-subject'
 
 import { NodeDeclaration } from './node'
@@ -14,10 +14,6 @@ export const defaultNamespaceUriMap = {
 }
 
 export const defaultNamespaceUri = `http://www.w3.org/1999/xhtml`
-
-export function prop (key, stream) {
-  return map(a => a[key], stream)
-}
 
 export function render (f, stream) {
   // TODO: Consider warning when stream produces anything other than a node declaration
@@ -115,33 +111,10 @@ export function mount (parentNode, beforeNode, nodeDeclarations$) {
   }
 }
 
-export class StreamDom extends Stream {
-  constructor (stream) {
-    super(stream.source)
-  }
-  prop (key) {
-    return prop(key, this)
-  }
-  render (f) {
-    return render(f, this)
-  }
-  renderItems (args) {
-    return renderItems(args, this)
-  }
-  renderItemStreams (args) {
-    return renderItemStreams(args, this)
-  }
-  mount (parentNode, beforeNode) {
-    return mount(parentNode, beforeNode, this)
-  }
-}
-
-export function streamDom (stream) {
-  return stream instanceof StreamDom ? stream : new StreamDom(stream)
-}
-
 // Add `declare` to `streamDom` export so it can be used
 // by transpiled JSX without requiring an additional import.
+// TODO: Decide whether streamDom should be an export
+const streamDom = {}
 streamDom.declare = declare
 
 export function declare (tag, args) {
