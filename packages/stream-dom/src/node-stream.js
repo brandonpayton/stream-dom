@@ -1,11 +1,14 @@
 import { merge } from 'most'
 import { sync } from 'most-subject'
-
-import { DoublyLinkedList, Node as ListNode } from './doubly-linked-list'
+import uuid from 'uuid'
+import diff, { CREATE, UPDATE, MOVE, REMOVE } from 'dift'
 
 import { NodeDescriptor } from './node'
 import { createNodeDescriptors } from './node-helpers'
-import { toArray } from 'kind'
+import { toArray } from './kind'
+import { symbol } from './symbol'
+
+const orderedListIdKey = symbol(`stream-dom-ordered-list-id`)
 
 function createStreamNode (manageContent, scope, input$) {
   const { document } = scope
@@ -51,101 +54,106 @@ export function createOrderedListNode (scope, {
   renderItemStream,
   list$
 }) {
+  const orderedListId = uuid.v4()
+
   return createStreamNode(updateListOnContentEvent, scope, list$)
 
   function updateListOnContentEvent (scope, domStartNode, domEndNode, list$) {
     const parentDestroy$ = scope.destroy$
     const update$ = list$.map(itemList => {
       const itemMap = itemList.reduce(
-        (map, item) => map.set(getKey(item), item),
-        // TODO: Consider eliminating use of Map
-        new Map()
+        (map, item) => ((map[getKey(item)] = item), map),
+        // Initially using simple object instead of a Map in order to avoid
+        // the need for a polyfill. If object keys are desired, we can reconsider later.
+        {}
       )
       return { itemList, itemMap }
     })
-    const itemMap$ = update$.map(update => update.itemMap).multicast()
+    const itemMap$ = update$.map(({ itemMap }) => itemMap).multicast()
 
-    // TODO: Address high complexity and re-enable complexity rule
-    // eslint-disable-next-line complexity
-    // TODO: Investigate improved patching strategy
-    return update$.scan((nodeState, update) => {
-      const { nodeList, nodeMap } = nodeState
-      const { itemList, itemMap } = update
+    return update$.scan((previousNodeRecords, update) => {
+      const { itemList } = update
+      const nodeRecords = new Array(itemList.length)
 
-      let currentListNode = nodeList.head()
-      // TODO: Treat itemList as an Iterable, not an Array
-      let i = 0
-      while (i < itemList.length) {
-        const removeCurrentListNode = !!currentListNode && itemMap.has(currentListNode.value.key)
-        if (removeCurrentListNode) {
-          const nodeToDestroy = currentListNode
-          currentListNode = currentListNode.next
-          destroyListNode(itemList, itemMap, nodeToDestroy)
+      // eslint-disable-next-line complexity
+      function patchListNodes (type, nodeRecord, item, index) {
+        if (type === CREATE) {
+          createListNode(nodeRecords, itemMap$, getKey(item), index)
+        } else if (type === UPDATE) {
+          updateListNode(nodeRecords, nodeRecord, index)
+        } else if (type === MOVE) {
+          moveListNode(nodeRecords, nodeRecord, index)
+        } else if (type === REMOVE) {
+          destroyListNode(nodeRecord)
         } else {
-          const item = itemList[i]
-          const itemKey = getKey(item)
-
-          if (nodeMap.has(itemKey)) {
-            const itemListNode = nodeMap.get(itemKey)
-
-            if (itemListNode.key === currentListNode.key) {
-              currentListNode = currentListNode.next
-            } else {
-              moveListNode(nodeList, itemListNode, currentListNode)
-            }
-          } else {
-            createListNode(nodeList, nodeMap, itemMap$, itemKey, currentListNode)
-          }
-
-          ++i
+          console.error(`Unexpected dift type '${type}'`)
         }
       }
 
-      // We have passed all nodes associated with existing items,
-      // so the remaining nodes should be removed
-      for (; currentListNode !== null; currentListNode = currentListNode.next) {
-        destroyListNode(nodeList, nodeMap, currentListNode)
-      }
+      diff(previousNodeRecords, itemList, patchListNodes, getDiffKey)
 
-      return { nodeList, nodeMap }
-    }, {
-      nodeList: new DoublyLinkedList(),
-      nodeMap: new Map()
-    })
+      return nodeRecords
+    }, [])
 
-    function createListNode (nodeList, listNodeMap, itemMap$, itemKey, beforeListNode) {
+    function getDiffKey (o) {
+      return typeof o === `object` && o[orderedListIdKey] === orderedListId
+        ? o[orderedListIdKey]
+        : getKey(o)
+    }
+
+    function createListNode (nodeRecords, itemMap$, itemKey, insertionIndex) {
       const itemDestroy$ = sync()
       const declaration = renderItemStream(itemMap$.map(
-        itemMap => itemMap.has(itemKey) ? itemMap.get(itemKey) : null
+        itemMap => itemMap[itemKey]
       ))
       const itemScope = Object.assign({}, scope, {
         destroy$: merge(parentDestroy$, itemDestroy$).take(1).multicast()
       })
-      const newListNode = new ListNode({
+      const descriptor = declaration.create(itemScope)
+      descriptor[orderedListIdKey] = orderedListId
+
+      const record = {
         key: itemKey,
-        descriptor: declaration.create(itemScope),
+        descriptor,
         itemDestroy$
-      })
-
-      moveListNode(nodeList, newListNode, beforeListNode)
-      listNodeMap.set(newListNode.value.key, newListNode)
+      }
+      moveListNode(nodeRecords, record, insertionIndex)
     }
 
-    function destroyListNode (nodeList, listNodeMap, listNode) {
-      const { value } = listNode
-      nodeList.remove(listNode)
-      listNodeMap.delete(value.key)
-      value.itemDestroy$.next()
-      value.descriptor.remove()
+    function updateListNode (nodeRecords, record, index) {
+      nodeRecords[index] = record
     }
 
-    function moveListNode (nodeList, listNode, beforeListNode) {
-      nodeList.insertBefore(listNode, beforeListNode)
+    function moveListNode (nodeRecords, record, toIndex) {
+      const parentNode = getParentNode()
+      const beforeNode = getBeforeNode(nodeRecords, toIndex)
+      record.descriptor.insert(parentNode, beforeNode)
+    }
 
-      const { descriptor } = listNode.value
-      const parentNode = domEndNode.parentNode
-      const beforeNode = beforeListNode ? beforeListNode.value.descriptor : domEndNode
-      descriptor.insert(parentNode, beforeNode)
+    function destroyListNode (nodeRecord) {
+      nodeRecord.itemDestroy$.next()
+      nodeRecord.descriptor.remove()
+    }
+
+    function getParentNode () {
+      return domEndNode.parentNode
+    }
+
+    // eslint-disable-next-line complexity
+    function getBeforeNode (newRecordList, insertionIndex) {
+      if (insertionIndex === newRecordList.length - 1) {
+        return domEndNode
+      } else if (insertionIndex === 0) {
+        return domStartNode.nextSibling
+      } else if (newRecordList[insertionIndex + 1]) {
+        const { descriptor } = newRecordList[insertionIndex + 1]
+        return descriptor.getBeforeNode()
+      } else if (newRecordList[insertionIndex - 1]) {
+        const { descriptor } = newRecordList[insertionIndex - 1]
+        return descriptor.getNextSiblingNode() || domEndNode
+      } else {
+        console.error(`Unable to find beforeNode for inserting list item.`)
+      }
     }
   }
 }
@@ -189,5 +197,9 @@ export class StreamNodeDescriptor extends NodeDescriptor {
 
   getBeforeNode () {
     return this.domStartNode
+  }
+
+  getNextSiblingNode () {
+    return this.domEndNode.nextSibling
   }
 }

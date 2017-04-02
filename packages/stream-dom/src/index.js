@@ -114,10 +114,10 @@ export function mount (parentNode, beforeNode, nodeDeclarations$) {
 // Add `declare` to `streamDom` export so it can be used
 // by transpiled JSX without requiring an additional import.
 // TODO: Decide whether streamDom should be an export
-const streamDom = {}
-streamDom.declare = declare
+const streamDom = { declare }
+export default streamDom
 
-export function declare (tag, args) {
+export function declare (tag, name, args) {
   if (typeof tag === `string`) {
     return declareElement(tag, args)
   } else if (typeof tag === `function`) {
@@ -128,6 +128,7 @@ export function declare (tag, args) {
 }
 
 function declareElement (name, {
+  nodeName,
   namespaceUri,
   attrs,
   props,
@@ -137,13 +138,13 @@ function declareElement (name, {
     throw new RangeError(`Tag name must not be the empty string`)
   } else {
     return new NodeDeclaration(createElementNode, {
-      namespaceUri, name, attrs, props, children
+      nodeName, namespaceUri, name, attrs, props, children
     })
   }
 }
 
-function declareComponent (Component, props) {
-  return new NodeDeclaration(Component, props)
+function declareComponent (Component, { nodeName, props }) {
+  return new NodeDeclaration(Component, { nodeName, props })
 }
 
-export { component } from './node-component'
+export { component, propTypes } from './node-component'

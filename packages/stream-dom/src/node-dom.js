@@ -7,6 +7,7 @@ import { isStream } from './kind'
 export function createElementNode (scope, args) {
   const { document, parentNamespaceUri } = scope
   const {
+    nodeName,
     name,
     attributes = [],
     properties = {},
@@ -29,7 +30,7 @@ export function createElementNode (scope, args) {
   childDescriptors.forEach(descriptor => descriptor.insert(fragment))
   domNode.appendChild(fragment)
 
-  return new ElementNodeDescriptor(name, domNode, childDescriptors)
+  return new ElementNodeDescriptor(nodeName, domNode, childDescriptors)
 }
 
 export function createTextNode (scope, str) {
@@ -127,6 +128,9 @@ export class DomNodeDescriptor extends NodeDescriptor {
   }
   getBeforeNode () {
     return this.domNode
+  }
+  getNextSiblingNode () {
+    return this.domNode.nextSibling
   }
 }
 

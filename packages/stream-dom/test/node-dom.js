@@ -87,6 +87,7 @@ suite(`nodes/dom`, function () {
     test(`extractContents`)
     test(`deleteContents`)
     test(`getBeforeNode`)
+    test(`getNextSiblingNode`)
   })
 
   test(`ElementNodeDescriptor`, function () {

@@ -34,8 +34,7 @@ export const propTypes = {
 }
 
 export function component (propsDeclaration, declareStructure, createOutput) {
-  return function createComponentNode (scope, { name, props: originalProps }) {
-    // TODO: Wrap unwrapped input streams
+  return function createComponentNode (scope, { nodeName, props: originalProps }) {
     const { props, feedbackStreams } =
       bindInput(streamDom, propsDeclaration, originalProps)
 

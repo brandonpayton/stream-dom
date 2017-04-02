@@ -89,6 +89,14 @@ export class NodeDescriptor {
    * @returns {Node}
    */
 
+  /**
+   * @abstract
+   * @function
+   * @name getNextSiblingNode
+   * @description Get the next sibling DOM node that follows this stream-dom node
+   * @returns {Node|null}
+   */
+
   // TODO: Consider setting via constructor
   /**
    * @abstract
