@@ -1,5 +1,4 @@
 import { localStorageStream } from './local-storage-stream'
-import { createEventStream, attachEventStream } from 'stream-dom'
 import assign from 'lodash.assign'
 import uuid from 'uuid'
 
@@ -12,24 +11,9 @@ import {
   TODO_DESTROY_ALL_COMPLETED
 } from './todo-actions'
 
-import { actionHandler } from './action-handler'
+import { create as createActionReducer } from './action-reducer'
 
-export function todoStore(key, action$) {
-  const updatedTodos$ = createEventStream()
-  const todos$ = localStorageStream(key, updatedTodos$, [])
-
-  attachEventStream(
-    updatedTodos$,
-    action$.sample(
-      (todos, action) => handleAction(todos, action),
-      todos$, action$
-    )
-  )
-
-  return todos$
-}
-
-const handleAction = actionHandler({
+const actionReducer = createActionReducer({
   [TODO_CREATE]: (todos, action) => todos.concat({
     id: uuid.v1(),
     text: action.text,
@@ -67,7 +51,7 @@ const handleAction = actionHandler({
   }
 })
 
-function findTodo(todos, id) {
+function findTodo (todos, id) {
   for (let i = 0; i < todos.length; ++i) {
     if (todos[i].id === id) {
       return i
@@ -75,4 +59,13 @@ function findTodo(todos, id) {
   }
 
   throw new Error(`Unable to find TODO with id '${id}'`)
+}
+
+export function todoStore (key, action$) {
+  return localStorageStream({
+    key,
+    action$,
+    actionReducer,
+    defaultValue: []
+  })
 }

@@ -12,4 +12,6 @@ suite(`nodes/stream`, function () {
     test(`adds and removes items to match the list`)
     test(`adds, moves, and removes items to match the list`)
   })
+
+  // TODO: Test StreamNodeDescriptor interface
 })

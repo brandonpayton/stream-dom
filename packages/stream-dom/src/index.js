@@ -147,4 +147,5 @@ function declareComponent (Component, { nodeName, props }) {
   return new NodeDeclaration(Component, { nodeName, props })
 }
 
+// TODO: Consider calling these input types
 export { component, propTypes } from './node-component'

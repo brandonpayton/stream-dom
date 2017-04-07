@@ -8,6 +8,7 @@ suite(`nodes/component`, function () {
     test(`extractContents`)
     test(`deleteContents`)
     test(`getBeforeNode`)
+    test(`getNextSiblingNode`)
     test(`expose`)
   })
 
