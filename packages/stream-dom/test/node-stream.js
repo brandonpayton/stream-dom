@@ -1,7 +1,7 @@
 suite(`nodes/stream`, function () {
   // TODO
   suite(`createReplacementNode`, function () {
-    test(`replaces entire contents for each event`)
+    test(`replaces content with each event`)
   })
 
   suite(`createOrderedListNode`, function () {

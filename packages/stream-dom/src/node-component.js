@@ -1,5 +1,5 @@
 import { NodeDescriptor } from './node'
-import { isStream } from './kind'
+import { isObservable } from './kind'
 import { streamDom, defaultNamespaceUri } from './index'
 
 import { proxy } from 'most-proxy'
@@ -11,7 +11,7 @@ const string = v => typeof v === `string`
 const number = v => typeof v === `number`
 const object = v => typeof v === `object`
 const array = v => Array.isArray(v)
-const stream = isStream
+const observable = isObservable
 // `feedback` indicates an internal stream dependency, so no validation is
 // necessary. We do not use `any` here because the reference must be unique in
 // order to detect `feedback` declarations
@@ -20,7 +20,7 @@ const feedback = () => true
 // order to detect `feedback` declarations
 const children = v => Array.isArray(v)
 
-export const propTypes = {
+export const inputTypes = {
   required,
   any,
   boolean,
@@ -29,16 +29,23 @@ export const propTypes = {
   object,
   array,
   children,
-  stream,
+  observable,
   feedback
 }
 
-export function component (propsDeclaration, declareStructure, createOutput) {
-  return function createComponentNode (scope, { nodeName, props: originalProps }) {
-    const { props, feedbackStreams } =
-      bindInput(streamDom, propsDeclaration, originalProps)
+export function component ({
+  input: inputDeclaration,
+  structure: declareStructure,
+  output: createOutput
+}) {
+  return function createComponentNode (scope, {
+    nodeName,
+    input: originalInput
+  }) {
+    const { input, feedbackStreams } =
+      bindInput(streamDom, inputDeclaration, originalInput)
 
-    const declaredStructure = declareStructure(props)
+    const declaredStructure = declareStructure(input)
 
     const { rootDescriptor, namedNodes } =
       createStructure(defaultNamespaceUri, scope, declaredStructure)
@@ -88,7 +95,7 @@ export function bindInput (streamDom, shapeDeclaration, actualInput) {
         )
       }
       const { stream, attach } = proxy()
-      result.props[key] = stream
+      result.input[key] = stream
       result.feedbackStreams[key] = attach
     } else {
       const value = actualInput[key]
@@ -97,13 +104,13 @@ export function bindInput (streamDom, shapeDeclaration, actualInput) {
         console.warn(`Invalid prop '${key}'`)
       }
 
-      result.props[key] = validator === stream
+      result.input[key] = validator === observable
         ? streamDom(value)
         : value
     }
 
     return result
-  }, { props: {}, feedbackStreams: {} })
+  }, { input: {}, feedbackStreams: {} })
 }
 
 // Expose for unit test
@@ -119,13 +126,7 @@ export function createStructure (defaultNamespaceUri, scope, declaration) {
 }
 
 // Expose for unit test
-export function bindOutput (streamDom, feedbackStreams, rawOutput) {
-  const output = Object.keys(rawOutput).reduce((memo, key) => {
-    const value = rawOutput[key]
-    memo[key] = isStream(value) ? streamDom(value) : value
-    return memo
-  }, {})
-
+export function bindOutput (streamDom, feedbackStreams, output) {
   Object.keys(feedbackStreams).forEach(key => {
     if (!(key in output)) {
       console.warn(`Unable to attach feedback stream for key '${key}'`)

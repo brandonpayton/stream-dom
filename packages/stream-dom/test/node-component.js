@@ -26,11 +26,10 @@ suite(`nodes/component`, function () {
       test(`feedback`)
     })
 
-    test(`relays declared properties`)
-    test(`validates declared properties`)
-    test(`filters out undeclared properties`)
-    test(`ensures streams wrapped with streamDom`)
-    test(`leaves wrapped streams intact`)
+    test(`relays declared inputs`)
+    test(`ignores undeclared inputs`)
+    test(`validates declared inputs`)
+    test(`filters out undeclared inputs`)
     test(`identifies feedback streams`)
     test(`ensures input streams are multicast`)
   })
@@ -42,8 +41,6 @@ suite(`nodes/component`, function () {
   })
 
   suite(`output`, function () {
-    test(`wraps output streams`)
-    test(`leaves wrapped streams intact`)
     test(`ensures output streams are multicast`)
     test(`attaches feedback streams`)
   })

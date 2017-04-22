@@ -1,8 +1,12 @@
-import { Stream } from 'most'
 import { isIterable } from 'most/lib/iterable'
+import symbolObservable from 'symbol-observable'
 
-export function isStream (o) {
-  return o instanceof Stream
+export function isObservable (o) {
+  return (
+    typeof o === `object` &&
+    o !== null &&
+    symbolObservable in o
+  )
 }
 
 export function toArray (o) {

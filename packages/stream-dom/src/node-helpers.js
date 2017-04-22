@@ -1,7 +1,7 @@
 import { NodeDeclaration } from './node'
-import { replacementStream } from './node-stream'
+import { createReplacementNode } from './node-stream'
 import { createTextNode } from './node-dom'
-import { isStream } from './kind'
+import { isObservable } from './kind'
 
 export function createNodeDescriptors (scope, declarationExpressions) {
   return declarationExpressions.reduce(reduceExpressions, [])
@@ -12,7 +12,7 @@ export function createNodeDescriptors (scope, declarationExpressions) {
     } else {
       descriptors.push(
         expression instanceof NodeDeclaration ? expression.create(scope) :
-        isStream(expression) ? replacementStream(scope, expression) :
+        isObservable(expression) ? createReplacementNode(scope, expression) :
         createTextNode(scope, expression.toString())
       )
     }

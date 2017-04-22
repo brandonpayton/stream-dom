@@ -2,15 +2,16 @@ import { assert } from 'chai'
 import { never } from 'most'
 
 import {
-  isStream,
+  isObservable,
   toArray
 } from '../src/kind'
 
 suite(`kind`, function () {
-  test(`isStream`, function () {
-    assert.isTrue(isStream(never()))
-    assert.isFalse(isStream({}))
+  test(`isObservable`, function () {
+    assert.isTrue(isObservable(never()))
+    assert.isFalse(isObservable({}))
   })
+  // TODO: Test most-subject and stream-dom rely on the same Stream lib. Later: Use Observable interop
 
   const missingSymbolIterator =
     typeof Symbol === `undefined` && typeof Symbol.iterator === `undefined`

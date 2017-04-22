@@ -1,19 +1,22 @@
 import { domEvent } from '@most/dom-event'
+import { from } from 'most'
 
 import { NodeDescriptor } from './node'
 import { createNodeDescriptors } from './node-helpers'
-import { isStream } from './kind'
+import { isObservable } from './kind'
 
 export function createElementNode (scope, args) {
   const { document, parentNamespaceUri } = scope
   const {
     nodeName,
+    nsUri,
     name,
-    attributes = [],
-    properties = {},
+    attrs = {},
+    nsAttrs = [],
+    props = {},
     children = []
   } = args
-  const namespaceUri = getNamespaceUri(scope, args)
+  const namespaceUri = getNamespaceUri(scope, nsUri)
 
   const domNode = document.createElementNS(namespaceUri, name)
 
@@ -21,14 +24,17 @@ export function createElementNode (scope, args) {
     ? scope
     : Object.assign({}, { parentNamespaceUri: namespaceUri })
 
-  processAttributes(childScope, domNode, attributes)
-  processProperties(childScope, domNode, properties)
+  processAttributes(childScope, domNode, attrs)
+  processNamespacedAttributes(childScope, domNode, nsAttrs)
+  processProperties(childScope, domNode, props)
 
   const childDescriptors = createNodeDescriptors(childScope, children)
 
-  const fragment = document.createDocumentFragment()
-  childDescriptors.forEach(descriptor => descriptor.insert(fragment))
-  domNode.appendChild(fragment)
+  if (childDescriptors.length > 0) {
+    const fragment = document.createDocumentFragment()
+    childDescriptors.forEach(descriptor => descriptor.insert(fragment))
+    domNode.appendChild(fragment)
+  }
 
   return new ElementNodeDescriptor(nodeName, domNode, childDescriptors)
 }
@@ -38,18 +44,23 @@ export function createTextNode (scope, str) {
 }
 
 function processAttributes (scope, domNode, attributes) {
-  attributes.forEach(
-    attribute => handleAttribute(scope, domNode, attribute)
-  )
+  for (let name in attributes) {
+    handleAttribute(scope, domNode, name, attributes[name])
+  }
 }
 
-function handleAttribute (scope, elementNode, attribute) {
-  const namespaceUri = getNamespaceUri(scope, attribute)
-  const { name, value: valueOrStream } = attribute
+function processNamespacedAttributes (scope, domNode, namespacedAttributes) {
+  namespacedAttributes.forEach(a => handleAttribute(
+    scope, domNode, a.name, a.value, a.nsUri
+  ))
+}
 
-  if (isStream(valueOrStream)) {
+function handleAttribute (scope, elementNode, name, valueOrStream, nsUri) {
+  const namespaceUri = getNamespaceUri(scope, nsUri)
+
+  if (isObservable(valueOrStream)) {
     const stream = valueOrStream
-    setWithStream(scope, stream, value => {
+    setWithObservable(scope, stream, value => {
       setAttribute(elementNode, namespaceUri, name, value)
     })
   } else {
@@ -75,19 +86,19 @@ function setBooleanAttribute (elementNode, namespaceUri, name, value) {
     : elementNode.removeAttributeNS(namespaceUri, name)
 }
 
-function getNamespaceUri (scope, nodeArgs) {
-  return nodeArgs.namespaceUri || scope.parentNamespaceUri
+function getNamespaceUri (scope, nsUri) {
+  return nsUri || scope.parentNamespaceUri
 }
 
 function processProperties (scope, domNode, properties) {
-  Object.keys(properties).forEach(
-    name => handleProperty(scope, domNode, name, properties[name])
-  )
+  for (let name in properties) {
+    handleProperty(scope, domNode, name, properties[name])
+  }
 }
 
 function handleProperty (scope, elementNode, name, value) {
-  isStream(value)
-    ? setWithStream(elementNode, value, value => (elementNode[name] = value))
+  isObservable(value)
+    ? setWithObservable(scope, value, value => setProperty(elementNode, name, value))
     : setProperty(elementNode, name, value)
 }
 
@@ -95,8 +106,8 @@ function setProperty (elementNode, name, value) {
   elementNode[name] = value
 }
 
-function setWithStream (scope, valueStream, setter) {
-  valueStream.skipRepeats().until(scope.destroy$).observe(setter)
+function setWithObservable (scope, valueObservable, setter) {
+  from(valueObservable).skipRepeats().until(scope.destroy$).observe(setter)
 }
 
 /**

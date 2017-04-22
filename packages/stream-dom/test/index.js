@@ -1,13 +1,10 @@
 import { assert } from 'chai'
 import {
-  prop,
   render,
   renderItems,
   renderItemStreams,
   mount,
-  declare,
-  streamDom,
-  StreamDom,
+  h,
   component as componentExport
 } from '../src/index'
 import { NodeDeclaration } from '../src/node'
@@ -17,22 +14,14 @@ import {
 } from '../src/node-stream'
 import { createElementNode } from '../src/node-dom'
 import { component } from '../src/node-component'
-import { isStream } from '../src/kind'
+import { isObservable } from '../src/kind'
 
-import { just, take, never, reduce, Stream } from 'most'
+import { just, take, never, reduce } from 'most'
 import { sync } from 'most-subject'
 
 const lastValue = (memo, value) => value
 
 suite(`streamDom`, function () {
-  test(`prop`, function () {
-    const expected = {}
-    const prop$ = prop(`expected`, just({ expected }))
-    return reduce(lastValue, null, prop$).then(
-      actual => assert.strictEqual(actual, expected)
-    )
-  })
-
   test(`render`, function () {
     const expected = {}
     const rendered$ = render(actual => ({ actual }), just(expected))
@@ -74,7 +63,7 @@ suite(`streamDom`, function () {
 
       const item$ = just({ id: `test-id` })
       const renderedItem$ = actual.creationArgs.renderItemStream(item$)
-      assert.isTrue(isStream(renderedItem$), `render yields a stream`)
+      assert.isTrue(isObservable(renderedItem$), `render yields an observable`)
       return reduce(lastValue, null, renderedItem$).then(actualRender => {
         assert.propertyVal(actualRender, `prop`, `test-id`)
       })
@@ -103,7 +92,7 @@ suite(`streamDom`, function () {
 
   suite(`mount`, function () {
     let containerNode = null
-    let mountInfo = null
+    let mountHandle = null
 
     setup(function () {
       containerNode = document.body.appendChild(document.createElement(`div`))
@@ -112,16 +101,16 @@ suite(`streamDom`, function () {
       containerNode.parentNode.removeChild(containerNode)
       containerNode = null
 
-      if (mountInfo) {
-        //mountInfo.dispose()
-        mountInfo = null
+      if (mountHandle) {
+        mountHandle.dispose()
+        mountHandle = null
       }
     })
 
     test(`creates stream node as root`, function () {
-      mountInfo = mount(containerNode, null, never())
+      mountHandle = mount(containerNode, null, never())
 
-      const { rootDescriptor } = mountInfo
+      const { rootDescriptor } = mountHandle
       assert.instanceOf(rootDescriptor, StreamNodeDescriptor)
       assert.strictEqual(rootDescriptor.domStartNode.parentNode, containerNode)
       assert.strictEqual(rootDescriptor.domEndNode.parentNode, containerNode)
@@ -130,10 +119,10 @@ suite(`streamDom`, function () {
       const existingChildNode = containerNode.appendChild(
         document.createElement(`span`)
       )
-      mountInfo = mount(containerNode, null, never())
+      mountHandle = mount(containerNode, null, never())
 
       assert.strictEqual(
-        mountInfo.rootDescriptor.domStartNode,
+        mountHandle.rootDescriptor.domStartNode,
         existingChildNode.nextSibling,
         `appended to parent`
       )
@@ -142,20 +131,20 @@ suite(`streamDom`, function () {
       const existingChildNode = containerNode.appendChild(
         document.createElement(`span`)
       )
-      mountInfo = mount(containerNode, existingChildNode, never())
+      mountHandle = mount(containerNode, existingChildNode, never())
 
       assert.strictEqual(
-        mountInfo.rootDescriptor.domEndNode,
+        mountHandle.rootDescriptor.domEndNode,
         existingChildNode.previousSibling,
         `inserted before reference node`
       )
     })
     test(`adds latest stream content to the DOM`, function () {
       const content$ = sync()
-      mountInfo = mount(containerNode, null, content$)
+      mountHandle = mount(containerNode, null, content$)
 
-      return mountInfo.promiseToMount.then(() => {
-        const { rootDescriptor } = mountInfo
+      return mountHandle.promiseToMount.then(() => {
+        const { rootDescriptor } = mountHandle
         const { domStartNode, domEndNode } = rootDescriptor
 
         assert.strictEqual(domStartNode.nextSibling, domEndNode, `empty`)
@@ -168,74 +157,61 @@ suite(`streamDom`, function () {
       })
     })
     test(`removes stream from the DOM when dispose is invoked`, function () {
-      mountInfo = mount(containerNode, null, never())
-      const { rootDescriptor } = mountInfo
+      mountHandle = mount(containerNode, null, never())
+      const { rootDescriptor } = mountHandle
 
       assert.isNotNull(rootDescriptor.domStartNode.parentNode)
       assert.isNotNull(rootDescriptor.domEndNode.parentNode)
-      mountInfo.dispose()
+      mountHandle.dispose()
       assert.isNull(rootDescriptor.domStartNode.parentNode)
       assert.isNull(rootDescriptor.domEndNode.parentNode)
     })
     test(`removes stream from the DOM when the stream ends`, function () {
       const content$ = sync()
-      mountInfo = mount(containerNode, null, content$)
-      const { rootDescriptor } = mountInfo
+      mountHandle = mount(containerNode, null, content$)
+      const { rootDescriptor } = mountHandle
 
       assert.isNotNull(rootDescriptor.domStartNode.parentNode)
       assert.isNotNull(rootDescriptor.domEndNode.parentNode)
       content$.complete()
 
-      return mountInfo.promiseToDispose.then(() => {
+      return mountHandle.promiseToDispose.then(() => {
         assert.isNull(rootDescriptor.domStartNode.parentNode)
         assert.isNull(rootDescriptor.domEndNode.parentNode)
       })
     })
   })
 
-  suite(`declare`, function () {
+  suite(`h`, function () {
     test(`declares an element`, function () {
       const expectedTagName = `div`
       const expectedNamespaceUri = `test-uri`
       const expectedAttributes = {}
+      const expectedNamespacedAttributes = []
       const expectedProperties = {}
       const expectedChildren = []
-      const declaration = declare(expectedTagName, {
-        namespaceUri: expectedNamespaceUri,
+      const declaration = h(expectedTagName, {
+        nsUri: expectedNamespaceUri,
         attrs: expectedAttributes,
-        props: expectedProperties,
-        children: expectedChildren
-      })
+        nsAttrs: expectedNamespacedAttributes,
+        props: expectedProperties
+      }, expectedChildren)
       assert.instanceOf(declaration, NodeDeclaration)
       assert.strictEqual(declaration.createNode, createElementNode)
-      assert.strictEqual(declaration.creationArgs.namespaceUri, expectedNamespaceUri)
+      assert.strictEqual(declaration.creationArgs.nsUri, expectedNamespaceUri)
       assert.strictEqual(declaration.creationArgs.name, expectedTagName)
       assert.strictEqual(declaration.creationArgs.attrs, expectedAttributes)
+      assert.strictEqual(declaration.creationArgs.nsAttrs, expectedNamespacedAttributes)
       assert.strictEqual(declaration.creationArgs.props, expectedProperties)
       assert.strictEqual(declaration.creationArgs.children, expectedChildren)
     })
     test(`declares a component`, function () {
       const expectedComponent = function () {}
-      const expectedArgs = {}
-      const declaration = declare(expectedComponent, expectedArgs)
+      const expectedArgs = { nodeName: `theComponent`, input: { x: 123, y: 456 } }
+      const declaration = h(expectedComponent, expectedArgs)
       assert.instanceOf(declaration, NodeDeclaration)
       assert.strictEqual(declaration.createNode, expectedComponent)
-      assert.strictEqual(declaration.creationArgs, expectedArgs)
-    })
-  })
-
-  suite(`streamDom function`, function () {
-    test(`convert Stream to StreamDom`, function () {
-      const originalStream = just(123)
-      assert.instanceOf(originalStream, Stream)
-      assert.notInstanceOf(originalStream, StreamDom)
-      const enhancedStream = streamDom(originalStream)
-      assert.instanceOf(enhancedStream, Stream)
-      assert.instanceOf(enhancedStream, StreamDom)
-    })
-    test(`returns same stream if it is already StreamDom`, function () {
-      const streamDomStream = streamDom(just(123))
-      assert.strictEqual(streamDom(streamDomStream), streamDomStream)
+      assert.deepEqual(declaration.creationArgs, expectedArgs)
     })
   })
 

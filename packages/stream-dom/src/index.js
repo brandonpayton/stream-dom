@@ -111,17 +111,11 @@ export function mount (parentNode, beforeNode, nodeDeclarations$) {
   }
 }
 
-// Add `declare` to `streamDom` export so it can be used
-// by transpiled JSX without requiring an additional import.
-// TODO: Decide whether streamDom should be an export
-const streamDom = { declare }
-export default streamDom
-
-export function declare (tag, name, args) {
+export function h (tag, args, children) {
   if (typeof tag === `string`) {
-    return declareElement(tag, args)
+    return declareElement(tag, args, children)
   } else if (typeof tag === `function`) {
-    return declareComponent(tag, args)
+    return declareComponent(tag, args, children)
   } else {
     throw new TypeError(`Unsupported tag type '${tag}'`)
   }
@@ -129,23 +123,34 @@ export function declare (tag, name, args) {
 
 function declareElement (name, {
   nodeName,
-  namespaceUri,
+  nsUri,
   attrs,
-  props,
-  children
-}) {
+  nsAttrs,
+  props
+}, children) {
   if (name === ``) {
     throw new RangeError(`Tag name must not be the empty string`)
   } else {
     return new NodeDeclaration(createElementNode, {
-      nodeName, namespaceUri, name, attrs, props, children
+      nodeName,
+      nsUri,
+      name,
+      attrs,
+      nsAttrs,
+      props,
+      children
     })
   }
 }
 
-function declareComponent (Component, { nodeName, props }) {
-  return new NodeDeclaration(Component, { nodeName, props })
+function declareComponent (Component, { nodeName, input }, children) {
+  return new NodeDeclaration(Component, {
+    nodeName,
+    // TODO: Consider warning if there is already a children key in `input`
+    input: children === undefined ? input : Object.create(input, {
+      children: { value: children }
+    })
+  })
 }
 
-// TODO: Consider calling these input types
-export { component, propTypes } from './node-component'
+export { component, inputTypes } from './node-component'

@@ -1,4 +1,4 @@
-import { merge } from 'most'
+import { from, merge } from 'most'
 import { sync } from 'most-subject'
 import uuid from 'uuid'
 import diff, { CREATE, UPDATE, MOVE, REMOVE } from 'dift'
@@ -10,8 +10,9 @@ import { symbol } from './symbol'
 
 const orderedListIdKey = symbol(`stream-dom-ordered-list-id`)
 
-function createStreamNode (manageContent, scope, input$) {
+function createStreamNode (manageContent, scope, inputObservable) {
   const { document } = scope
+  const input$ = from(inputObservable)
   const domStartNode = document.createComment(``)
   const domEndNode = document.createComment(``)
 
