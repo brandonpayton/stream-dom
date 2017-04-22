@@ -58,14 +58,24 @@ function processNamespacedAttributes (scope, domNode, namespacedAttributes) {
 function handleAttribute (scope, elementNode, name, valueOrStream, nsUri) {
   const namespaceUri = getNamespaceUri(scope, nsUri)
 
+  // Avoid specifying the same namespace as the current element because
+  // IE 11 and earlier do not always process it the same as specifying no namespace.
+  // For example, an `<input>` with namespace URI http://www.w3.org/1999/xhtml
+  // only correctly takes a `type` attribute when specified with no namespace.
+  // If the `type` attribute is set using namespace URI http://www.w3.org/1999/xhtml,
+  // the effective `<input> type` is unchanged.
+  const attributeNamespaceUri = namespaceUri === scope.namespaceUri
+    ? null
+    : namespaceUri
+
   if (isObservable(valueOrStream)) {
     const stream = valueOrStream
     setWithObservable(scope, stream, value => {
-      setAttribute(elementNode, namespaceUri, name, value)
+      setAttribute(elementNode, attributeNamespaceUri, name, value)
     })
   } else {
     const value = valueOrStream
-    setAttribute(elementNode, namespaceUri, name, value)
+    setAttribute(elementNode, attributeNamespaceUri, name, value)
   }
 }
 
