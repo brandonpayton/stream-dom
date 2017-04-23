@@ -59,12 +59,13 @@ function handleAttribute (scope, elementNode, name, valueOrStream, nsUri) {
   const namespaceUri = getNamespaceUri(scope, nsUri)
 
   // Avoid specifying the same namespace as the current element because
-  // IE 11 and earlier do not always process it the same as specifying no namespace.
+  // IE 11 and earlier do not always process it the same as when specifying
+  // no namespace.
   // For example, an `<input>` with namespace URI http://www.w3.org/1999/xhtml
   // only correctly takes a `type` attribute when specified with no namespace.
   // If the `type` attribute is set using namespace URI http://www.w3.org/1999/xhtml,
   // the effective `<input> type` is unchanged.
-  const attributeNamespaceUri = namespaceUri === scope.namespaceUri
+  const attributeNamespaceUri = namespaceUri === scope.parentNamespaceUri
     ? null
     : namespaceUri
 
