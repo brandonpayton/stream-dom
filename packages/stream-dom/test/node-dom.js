@@ -5,11 +5,10 @@ import {
   TextNodeDescriptor
 } from '../src/node-dom'
 import { NodeDeclaration } from '../src/node'
-import { wait } from '../test-util/time'
 import domAssert from '../test-util/dom-assert'
 import * as mock from '../test-util/mock'
 
-import { sync as syncSubject, hold as holdSubject } from 'most-subject'
+import { sync as syncSubject } from 'most-subject'
 import { assert } from 'chai'
 
 suite(`nodes/dom`, function () {
