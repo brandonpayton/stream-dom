@@ -7,22 +7,16 @@ import {
 import { NodeDeclaration } from '../src/node'
 import { wait } from '../test-util/time'
 import domAssert from '../test-util/dom-assert'
+import * as mock from '../test-util/mock'
 
 import { sync as syncSubject, hold as holdSubject } from 'most-subject'
 import { assert } from 'chai'
 
 suite(`nodes/dom`, function () {
   let scope
-  let signalMounted = () => wait().then(() => scope.mounted$.next())
 
   setup(function () {
-    scope = {
-      document,
-      parentNamespaceUri: `http://www.w3.org/1999/xhtml`,
-      sharedRange: document.createRange(),
-      mounted$: holdSubject(1, syncSubject()),
-      destroy$: holdSubject(1, syncSubject())
-    }
+    scope = mock.scope()
   })
   teardown(function () {
     scope.destroy$.next()
@@ -73,7 +67,7 @@ suite(`nodes/dom`, function () {
         name: `div`, attrs: { class: class$ }
       })
 
-      return signalMounted().then(() => {
+      return mock.signalMounted(scope).then(() => {
         assert.isFalse(domNode.hasAttribute(`class`), `no class attribute yet`)
 
         const expectedClassValue1 = `unit test expected-value1`
@@ -92,7 +86,7 @@ suite(`nodes/dom`, function () {
         name: `input`, attrs: { type: `checkbox`, checked: checked$ }
       })
 
-      return signalMounted().then(() => {
+      return mock.signalMounted(scope).then(() => {
         assert.isFalse(
           domNode.hasAttribute(`checked`),
           `no checked attribute yet`
@@ -171,7 +165,7 @@ suite(`nodes/dom`, function () {
         name: `div`, nsAttrs: [ testAttr ]
       })
 
-      return signalMounted().then(() => {
+      return mock.signalMounted(scope).then(() => {
         assert.isFalse(
           domNode.hasAttributeNS(testAttr.nsUri, testAttr.name),
           `no attribute yet`
@@ -200,7 +194,7 @@ suite(`nodes/dom`, function () {
         name: `div`, nsAttrs: [ testAttr ]
       })
 
-      return signalMounted().then(() => {
+      return mock.signalMounted(scope).then(() => {
         assert.isFalse(
           domNode.hasAttributeNS(testAttr.nsUri, testAttr.name),
           `no attribute yet`
@@ -231,7 +225,7 @@ suite(`nodes/dom`, function () {
         name: `div`, props: { className: className$ }
       })
 
-      return signalMounted().then(() => {
+      return mock.signalMounted(scope).then(() => {
         assert.strictEqual(domNode.className, ``, `property not yet set`)
 
         className$.next(`expected1`)
