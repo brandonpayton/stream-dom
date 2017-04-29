@@ -1,4 +1,5 @@
 import { from, merge } from 'most'
+import { hold } from '@most/hold'
 import { sync } from 'most-subject'
 import uuid from 'uuid'
 import diff, { CREATE, UPDATE, MOVE, REMOVE } from 'dift'
@@ -70,7 +71,7 @@ export function createOrderedListNode (scope, {
       )
       return { itemList, itemMap }
     })
-    const itemMap$ = update$.map(({ itemMap }) => itemMap).multicast()
+    const itemMap$ = update$.map(({ itemMap }) => itemMap).thru(hold)
 
     return update$.scan((previousNodeRecords, update) => {
       const { itemList } = update
@@ -118,6 +119,7 @@ export function createOrderedListNode (scope, {
         descriptor,
         itemDestroy$
       }
+      nodeRecords[insertionIndex] = record
       moveListNode(nodeRecords, record, insertionIndex)
     }
 
