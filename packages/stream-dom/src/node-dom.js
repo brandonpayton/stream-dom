@@ -84,7 +84,7 @@ function setAttribute (elementNode, namespaceUri, name, value) {
   // Attributes with no value are treated as boolean
   value === null && (value = true)
 
-  if (value === true || !value) {
+  if (value === true || value === false) {
     setBooleanAttribute(elementNode, namespaceUri, name, value)
   } else {
     elementNode.setAttributeNS(namespaceUri, name, value)

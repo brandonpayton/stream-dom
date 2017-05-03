@@ -1,4 +1,4 @@
-import { just, never, map } from 'most'
+import { just, map } from 'most'
 import { sync as syncSubject, hold as holdSubject } from 'most-subject'
 
 import { NodeDeclaration } from './node'
@@ -41,7 +41,7 @@ export function renderItemStreams ({ identify, render }, listStream) {
     renderItemStream: render,
     list$: listStream
   })
-  return just(orderedListDeclaration).concat(never)
+  return just(orderedListDeclaration)
 }
 
 // TODO: Settle on "destroy" or "dispose"

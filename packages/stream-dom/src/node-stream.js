@@ -1,21 +1,23 @@
 import { from, merge } from 'most'
 import { hold } from '@most/hold'
 import { sync } from 'most-subject'
-import uuid from 'uuid'
-import diff, { CREATE, UPDATE, MOVE, REMOVE } from 'dift'
+
+import { DoublyLinkedList, Node as ListNode } from './doubly-linked-list'
 
 import { NodeDescriptor } from './node'
 import { createNodeDescriptors } from './node-helpers'
 import { toArray } from './kind'
-import { symbol } from './symbol'
-
-const orderedListIdKey = symbol(`stream-dom-ordered-list-id`)
 
 function createStreamNode (manageContent, scope, inputObservable) {
   const { document } = scope
   const input$ = from(inputObservable)
   const domStartNode = document.createComment(``)
   const domEndNode = document.createComment(``)
+
+  // TODO: Rework or comment the reliance on always starting in a fragment
+  const fragment = document.createDocumentFragment()
+  fragment.appendChild(domStartNode)
+  fragment.appendChild(domEndNode)
 
   const content$ = manageContent(scope, domStartNode, domEndNode, input$)
     .until(scope.destroy$)
@@ -38,15 +40,20 @@ export function createReplacementNode (scope, input$) {
       return createNodeDescriptors(childScope, children)
     })
     .tap(childDescriptors => {
-      const { document, sharedRange } = scope
+      const { document } = scope
 
       const fragment = document.createDocumentFragment()
       childDescriptors.forEach(childDescriptor => childDescriptor.insert(fragment))
 
-      sharedRange.setStartAfter(domStartNode)
-      sharedRange.setEndBefore(domEndNode)
-      sharedRange.deleteContents()
-      sharedRange.insertNode(fragment)
+      if (domStartNode.nextSibling !== domEndNode) {
+        const { sharedRange } = scope
+
+        sharedRange.setStartAfter(domStartNode)
+        sharedRange.setEndBefore(domEndNode)
+        sharedRange.deleteContents()
+      }
+
+      domEndNode.parentNode.insertBefore(fragment, domEndNode)
     })
   }
 }
@@ -56,8 +63,6 @@ export function createOrderedListNode (scope, {
   renderItemStream,
   list$
 }) {
-  const orderedListId = uuid.v4()
-
   return createStreamNode(updateListOnContentEvent, scope, list$)
 
   function updateListOnContentEvent (scope, domStartNode, domEndNode, list$) {
@@ -70,93 +75,75 @@ export function createOrderedListNode (scope, {
         {}
       )
       return { itemList, itemMap }
+    }).thru(hold)
+    const itemMap$ = update$.map(({ itemMap }) => itemMap)
+    const nodeRecordList = new NodeRecordList({
+      getParentDomNode: getParentNode,
+      domEndNode
     })
-    const itemMap$ = update$.map(({ itemMap }) => itemMap).thru(hold)
 
-    return update$.scan((previousNodeRecords, update) => {
-      const { itemList } = update
-      const nodeRecords = new Array(itemList.length)
+    return update$.tap(patchList).multicast()
 
-      // eslint-disable-next-line complexity
-      function patchListNodes (type, nodeRecord, item, index) {
-        if (type === CREATE) {
-          createListNode(nodeRecords, itemMap$, getKey(item), index)
-        } else if (type === UPDATE) {
-          updateListNode(nodeRecords, nodeRecord, index)
-        } else if (type === MOVE) {
-          moveListNode(nodeRecords, nodeRecord, index)
-        } else if (type === REMOVE) {
-          destroyListNode(nodeRecord)
+    // Expose for unit test
+    // TODO: Address high complexity and re-enable complexity rule
+    // eslint-disable-next-line complexity
+    function patchList ({ itemList, itemMap: itemsByKey }) {
+      // TODO: Consider treating itemList as an Iterable, not an Array
+      let currentRecordNode = nodeRecordList.head
+      let i = 0
+      while (i < itemList.length) {
+        const removeCurrentListNode =
+          currentRecordNode && !(currentRecordNode.value.key in itemsByKey)
+
+        if (removeCurrentListNode) {
+          const nodeToRemove = currentRecordNode
+          currentRecordNode = currentRecordNode.next
+          nodeRecordList.remove(nodeToRemove)
         } else {
-          console.error(`Unexpected dift type '${type}'`)
+          const item = itemList[i]
+          const itemKey = getKey(item)
+
+          if (nodeRecordList.hasNodeByKey(itemKey)) {
+            const itemRecordNode = nodeRecordList.getNodeByKey(itemKey)
+
+            if (itemRecordNode.value.key === currentRecordNode.value.key) {
+              currentRecordNode = currentRecordNode.next
+            } else {
+              nodeRecordList.insertBefore(itemRecordNode, currentRecordNode)
+            }
+          } else {
+            const newRecordNode = createRecordNode(itemKey)
+            nodeRecordList.insertBefore(newRecordNode, currentRecordNode)
+          }
+
+          ++i
         }
       }
 
-      diff(previousNodeRecords, itemList, patchListNodes, getDiffKey)
-
-      return nodeRecords
-    }, [])
-
-    function getDiffKey (o) {
-      return typeof o === `object` && o[orderedListIdKey] === orderedListId
-        ? o[orderedListIdKey]
-        : getKey(o)
+      // We have passed all nodes associated with existing items,
+      // so the remaining nodes should be removed
+      while (currentRecordNode !== null) {
+        const nodeToRemove = currentRecordNode
+        currentRecordNode = currentRecordNode.next
+        nodeRecordList.remove(nodeToRemove)
+      }
     }
 
-    function createListNode (nodeRecords, itemMap$, itemKey, insertionIndex) {
+    function createRecordNode (key) {
       const itemDestroy$ = sync()
       const declaration = renderItemStream(itemMap$.map(
-        itemMap => itemMap[itemKey]
+        itemMap => itemMap[key]
       ))
       const itemScope = Object.assign({}, scope, {
         destroy$: merge(parentDestroy$, itemDestroy$).take(1).multicast()
       })
       const descriptor = declaration.create(itemScope)
-      descriptor[orderedListIdKey] = orderedListId
 
-      const record = {
-        key: itemKey,
-        descriptor,
-        itemDestroy$
-      }
-      nodeRecords[insertionIndex] = record
-      moveListNode(nodeRecords, record, insertionIndex)
-    }
-
-    function updateListNode (nodeRecords, record, index) {
-      nodeRecords[index] = record
-    }
-
-    function moveListNode (nodeRecords, record, toIndex) {
-      const parentNode = getParentNode()
-      const beforeNode = getBeforeNode(nodeRecords, toIndex)
-      record.descriptor.insert(parentNode, beforeNode)
-    }
-
-    function destroyListNode (nodeRecord) {
-      nodeRecord.itemDestroy$.next()
-      nodeRecord.descriptor.remove()
+      return new ListNode({ key, descriptor, itemDestroy$ })
     }
 
     function getParentNode () {
       return domEndNode.parentNode
-    }
-
-    // eslint-disable-next-line complexity
-    function getBeforeNode (newRecordList, insertionIndex) {
-      if (insertionIndex === newRecordList.length - 1) {
-        return domEndNode
-      } else if (insertionIndex === 0) {
-        return domStartNode.nextSibling
-      } else if (newRecordList[insertionIndex + 1]) {
-        const { descriptor } = newRecordList[insertionIndex + 1]
-        return descriptor.getBeforeNode()
-      } else if (newRecordList[insertionIndex - 1]) {
-        const { descriptor } = newRecordList[insertionIndex - 1]
-        return descriptor.getNextSiblingNode() || domEndNode
-      } else {
-        console.error(`Unable to find beforeNode for inserting list item.`)
-      }
     }
   }
 }
@@ -176,11 +163,8 @@ export class StreamNodeDescriptor extends NodeDescriptor {
   extractContents () {
     const { domStartNode, domEndNode } = this
 
-    if (domStartNode.parentNode === null) {
-      const fragment = document.createDocumentFragment()
-      fragment.appendChild(domStartNode)
-      fragment.appendChild(domEndNode)
-      return fragment
+    if (domStartNode.parentNode.nodeType === Node.DOCUMENT_FRAGMENT_NODE) {
+      return domStartNode.parentNode
     } else {
       const { sharedRange } = this
       sharedRange.setStartBefore(domStartNode)
@@ -190,10 +174,16 @@ export class StreamNodeDescriptor extends NodeDescriptor {
   }
 
   deleteContents () {
-    if (this.domStartNode.parentNode !== null) {
+    const { domStartNode, domEndNode } = this
+
+    if (domStartNode.parentNode.nodeType === Node.DOCUMENT_FRAGMENT_NODE) {
+      const fragment = document.createDocumentFragment()
+      fragment.appendChild(domStartNode)
+      fragment.appendChild(domEndNode)
+    } else {
       const { sharedRange } = this
-      sharedRange.setStartBefore(this.domStartNode)
-      sharedRange.setEndAfter(this.domEndNode)
+      sharedRange.setStartBefore(domStartNode)
+      sharedRange.setEndAfter(domEndNode)
       sharedRange.deleteContents()
     }
   }
@@ -206,3 +196,67 @@ export class StreamNodeDescriptor extends NodeDescriptor {
     return this.domEndNode.nextSibling
   }
 }
+
+class NodeRecordList {
+  constructor ({
+    getParentDomNode,
+    domEndNode
+  }) {
+    this._list = new DoublyLinkedList()
+    this._getParentDomNode = getParentDomNode
+    this._domEndNode = domEndNode
+    this._nodeMap = {}
+  }
+
+  get head () { return this._list.head }
+  get tail () { return this._list.tail }
+
+  insertBefore (node, beforeNode) {
+    const key = this.getNodeKey(node)
+
+    if (this.hasNodeByKey(key) && this.getNodeByKey(key) !== node) {
+      console.warn(
+        `At least two items exist with the same key. There can be only one. ` +
+        `Ignoring the new node with the duplicate key.`
+      )
+    } else {
+      node.value.descriptor.insert(
+        this._getParentDomNode(),
+        beforeNode ? beforeNode.value.descriptor : this._domEndNode
+      )
+      this._list.insertBefore(node, beforeNode)
+      this._rememberNode(node)
+    }
+  }
+
+  remove (node) {
+    const nodeValue = node.value
+    nodeValue.itemDestroy$.next()
+    nodeValue.descriptor.remove()
+    this._list.remove(node)
+    this._forgetNode(node)
+  }
+
+  getNodeKey (node) {
+    return node.value.key
+  }
+
+  getNodeByKey (key) {
+    return this.hasNodeByKey(key) ? this._nodeMap[key] : null
+  }
+
+  hasNodeByKey (key) {
+    return key in this._nodeMap
+  }
+
+  _rememberNode (node) {
+    const key = this.getNodeKey(node)
+    this._nodeMap[key] = node
+  }
+
+  _forgetNode (node) {
+    const key = this.getNodeKey(node)
+    delete this._nodeMap[key]
+  }
+}
+
