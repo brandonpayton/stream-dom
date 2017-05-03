@@ -6,7 +6,6 @@ import { NodeDeclaration } from '../src/node'
 import { createElementNode, createTextNode } from '../src/node-dom'
 import { createReplacementNode, createOrderedListNode } from '../src/node-stream'
 import * as mock from '../test-util/mock'
-import { wait } from '../test-util/time'
 import domAssert from '../test-util/dom-assert'
 
 suite(`node-stream`, function () {
