@@ -1,6 +1,6 @@
 import { NodeDescriptor } from './node'
 import { isObservable } from './kind'
-import { streamDom, defaultNamespaceUri } from './index'
+import { defaultNamespaceUri } from './index'
 
 import { proxy } from 'most-proxy'
 
@@ -33,17 +33,19 @@ export const inputTypes = {
   feedback
 }
 
+function noOp () {}
+
 export function component ({
-  input: inputDeclaration,
+  input: inputDeclaration = {},
   structure: declareStructure,
-  output: createOutput
+  output: createOutput = noOp
 }) {
   return function createComponentNode (scope, {
     nodeName,
-    input: originalInput
-  }) {
+    input: originalInput = {}
+  } = {}) {
     const { input, feedbackStreams } =
-      bindInput(streamDom, inputDeclaration, originalInput)
+      bindInput(inputDeclaration, originalInput)
 
     const declaredStructure = declareStructure(input)
 
@@ -51,7 +53,7 @@ export function component ({
       createStructure(defaultNamespaceUri, scope, declaredStructure)
 
     const output =
-      bindOutput(streamDom, feedbackStreams, createOutput(namedNodes))
+      bindOutput(feedbackStreams, createOutput(namedNodes))
 
     return new ComponentNodeDescriptor(name, rootDescriptor, output)
   }
@@ -82,7 +84,7 @@ export function reduceNamedNodes (namedNodes, node) {
 }
 
 // Expose for unit test
-export function bindInput (streamDom, shapeDeclaration, actualInput) {
+export function bindInput (shapeDeclaration, actualInput) {
   // TODO: Address high complexity and re-enable complexity rule
   // eslint-disable-next-line complexity
   return Object.keys(shapeDeclaration).reduce((result, key) => {
@@ -104,9 +106,7 @@ export function bindInput (streamDom, shapeDeclaration, actualInput) {
         console.warn(`Invalid prop '${key}'`)
       }
 
-      result.input[key] = validator === observable
-        ? streamDom(value)
-        : value
+      result.input[key] = value
     }
 
     return result
@@ -126,7 +126,7 @@ export function createStructure (defaultNamespaceUri, scope, declaration) {
 }
 
 // Expose for unit test
-export function bindOutput (streamDom, feedbackStreams, output) {
+export function bindOutput (feedbackStreams, output) {
   Object.keys(feedbackStreams).forEach(key => {
     if (!(key in output)) {
       console.warn(`Unable to attach feedback stream for key '${key}'`)

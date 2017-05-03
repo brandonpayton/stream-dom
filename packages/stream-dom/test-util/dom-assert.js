@@ -1,9 +1,9 @@
 import { assert } from 'chai'
 
 export default {
-  textNode (domNode, expectedText) {
+  textNode (domNode, expectedContents) {
     assert.strictEqual(domNode.nodeType, Node.TEXT_NODE, `is a text node`)
-    assert.strictEqual(domNode.textContent, expectedText, `correct contents`)
+    assert.strictEqual(domNode.textContent, expectedContents.toString(), `correct contents`)
   },
 
   elementNode (domNode, expectedTagName, expectedNamespaceURI) {
