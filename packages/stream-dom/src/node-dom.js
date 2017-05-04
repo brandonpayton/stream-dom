@@ -1,4 +1,3 @@
-import { domEvent } from '@most/dom-event'
 import { from } from 'most'
 
 import { NodeDescriptor } from './node'
@@ -156,15 +155,6 @@ export class DomNodeDescriptor extends NodeDescriptor {
   }
 }
 
-class ExposedElement {
-  constructor (domNode) {
-    this.domNode = domNode
-  }
-  on (eventName, useCapture = false) {
-    return domEvent(eventName, this.domNode, useCapture)
-  }
-}
-
 /**
  * A descriptor for a DOM element.
  */
@@ -179,9 +169,10 @@ export class ElementNodeDescriptor extends DomNodeDescriptor {
      * @type {NodeDescriptor[]|null}
      */
     this.childDescriptors = childDescriptors
+  }
 
-    // TODO: Document this.
-    this.expose = new ExposedElement(domNode)
+  get expose () {
+    return this.domNode
   }
 }
 

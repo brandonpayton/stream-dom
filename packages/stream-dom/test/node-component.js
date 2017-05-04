@@ -1,21 +1,29 @@
 import { assert } from 'chai'
+import { fromPromise } from 'most'
 import { sync as syncSubject } from 'most-subject'
+import { domEvent } from '@most/dom-event'
 
 import { component, inputTypes } from '../src/node-component'
 import { NodeDeclaration } from '../src/node'
 import { createElementNode } from '../src/node-dom'
 
 import * as mock from '../test-util/mock'
+import { wait } from '../test-util/time'
 import domAssert from '../test-util/dom-assert'
 
-suite(`nodes/component`, function () {
+suite(`node-component`, function () {
+  let containerNode
   let scope
 
   setup(function () {
+    containerNode = document.body.appendChild(
+      document.createElement(`div`)
+    )
     scope = mock.scope()
   })
 
   teardown(function () {
+    containerNode.parentNode.removeChild(containerNode)
     scope.destroy$.next()
   })
 
@@ -100,9 +108,90 @@ suite(`nodes/component`, function () {
       )
     })
   })
-  test(`structure and output`)
-  test(`static input structure and output`)
-  test(`dynamic input structure and output`)
+  test(`structure and output`, function () {
+    const TestComponent = component({
+      structure: input => new NodeDeclaration(createElementNode, {
+        nodeName: `buttonNode`,
+        name: `button`
+      }),
+      output: namedNodes => ({
+        click$: domEvent(`click`, namedNodes.buttonNode)
+      })
+    })
+
+    const descriptor = TestComponent(scope)
+    descriptor.insert(containerNode)
+
+    const buttonNode = descriptor.getBeforeNode()
+    domAssert.elementNode(buttonNode, `button`)
+
+    const expectedClickCount = 7
+
+    return mock.signalMounted(scope).then(() => {
+      const { click$ } = descriptor.expose
+
+      const promiseToClick = wait(100).then(() => {
+        for (let i = 0; i < expectedClickCount; ++i) {
+          buttonNode.click()
+        }
+      })
+
+      return click$
+        .until(fromPromise(promiseToClick))
+        .reduce(count => count + 1, 0)
+    }).then(actualClickCount => {
+      assert.strictEqual(
+        actualClickCount,
+        expectedClickCount,
+        `component click count`
+      )
+    })
+  })
+  test(`input, structure, and output`, function () {
+    const multiplier = 123
+
+    const TestComponent = component({
+      input: {
+        multiplier: inputTypes.number
+      },
+      structure: input => new NodeDeclaration(createElementNode, {
+        nodeName: `buttonNode`,
+        name: `button`,
+        attrs: { class: input.class$ }
+      }),
+      output: (namedNodes, input) => ({
+        magnitude$: domEvent(`click`, namedNodes.buttonNode).scan(
+          current => current * input.multiplier,
+          1
+        )
+      })
+    })
+
+    const descriptor = TestComponent(scope, { input: { multiplier } })
+    descriptor.insert(containerNode)
+
+    const buttonNode = descriptor.getBeforeNode()
+    domAssert.elementNode(buttonNode, `button`)
+
+    const expectedClickCount = 7
+
+    return mock.signalMounted(scope).then(() => {
+      const { magnitude$ } = descriptor.expose
+
+      const promiseToClick = wait(100).then(() => {
+        for (let i = 0; i < expectedClickCount; ++i) {
+          buttonNode.click()
+        }
+      })
+
+      return magnitude$
+        .until(fromPromise(promiseToClick))
+        .reduce((_, lastMagnitude) => lastMagnitude)
+    }).then(actualMagnitude => {
+      const expectedMagnitude = Math.pow(multiplier, expectedClickCount)
+      assert.strictEqual(actualMagnitude, expectedMagnitude, `final magnitude`)
+    })
+  })
   test(`feedback streams`)
 
   suite(`ComponentNodeDescriptor`, function () {

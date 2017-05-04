@@ -25,7 +25,6 @@
   "author": "Brandon Payton <brandon@happycode.net>",
   "license": "MIT",
   "dependencies": {
-    "@most/dom-event": "^1.3.0",
     "@most/hold": "^2.0.0",
     "dift": "^0.1.12",
     "most": "^1.3.0",
@@ -34,6 +33,7 @@
     "symbol-observable": "^1.0.4"
   },
   "devDependencies": {
+    "@most/dom-event": "^1.3.0",
     "babel-core": "^6.14.0",
     "babel-loader": "^6.2.5",
     "babel-polyfill": "^6.13.0",

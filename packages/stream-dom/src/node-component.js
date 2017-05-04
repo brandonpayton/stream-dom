@@ -53,7 +53,7 @@ export function component ({
       createStructure(defaultNamespaceUri, scope, declaredStructure)
 
     const output =
-      bindOutput(feedbackStreams, createOutput(namedNodes))
+      bindOutput(feedbackStreams, createOutput(namedNodes, input))
 
     return new ComponentNodeDescriptor(name, rootDescriptor, output)
   }
@@ -70,7 +70,7 @@ export function reduceNamedNodes (namedNodes, node) {
     } else if (!(`expose` in node)) {
       console.warn(`No exposed interface for node named '${name}'`)
     } else {
-      namedNodes[name] = node
+      namedNodes[name] = node.expose
     }
   }
 
