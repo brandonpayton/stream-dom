@@ -1,4 +1,1 @@
-streamDom.element("div", {
-  attributes: [],
-  children: []
-});
+h("div");

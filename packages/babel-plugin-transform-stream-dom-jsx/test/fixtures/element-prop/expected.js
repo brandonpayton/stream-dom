@@ -1,7 +1,6 @@
-streamDom.element("div", {
-  attributes: [
-    { namespace: "property", name: "id", value: "expected-id" },
-    { namespace: "property", name: "className", value: "expected-class" }
-  ],
-  children: []
+h("div", {
+  props: {
+    id: "expected-id",
+    className: "expected-class"
+  }
 });

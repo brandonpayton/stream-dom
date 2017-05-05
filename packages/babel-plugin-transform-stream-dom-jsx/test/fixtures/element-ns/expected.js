@@ -1,5 +1,3 @@
-streamDom.element("g", {
-  namespaceName: "svg",
-  attributes: [],
-  children: []
+h("g", {
+  namespaceUri: "http://www.w3.org/2000/svg"
 });

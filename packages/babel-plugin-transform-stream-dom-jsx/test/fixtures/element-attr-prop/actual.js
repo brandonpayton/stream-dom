@@ -1,1 +1,1 @@
-<div id="expected-id" property:className="expected-class"></div>
+<div id="expected-id" prop:className="expected-class"></div>
