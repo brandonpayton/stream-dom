@@ -192,7 +192,43 @@ suite(`node-component`, function () {
       assert.strictEqual(actualMagnitude, expectedMagnitude, `final magnitude`)
     })
   })
-  test(`feedback streams`)
+  test(`feedback streams`, function () {
+    const TestComponent = component({
+      input: {
+        clickCount$: inputTypes.feedback
+      },
+      structure: input => new NodeDeclaration(createElementNode, {
+        nodeName: `rootNode`,
+        name: `div`,
+        attrs: { 'data-click-count': input.clickCount$ }
+      }),
+      output: namedNodes => ({
+        clickCount$: domEvent(`click`, namedNodes.rootNode)
+          .scan(count => count + 1, 0)
+      })
+    })
+
+    const descriptor = TestComponent(scope)
+    descriptor.insert(containerNode)
+
+    return mock.signalMounted(scope).then(() => {
+      const domNode = descriptor.getBeforeNode()
+      const getClickCount = () => Number(
+        domNode.getAttribute(`data-click-count`)
+      )
+
+      assert.strictEqual(getClickCount(), 0, `initial count`)
+
+      domNode.click()
+      assert.strictEqual(getClickCount(), 1, `count after one click`)
+
+      domNode.click()
+      assert.strictEqual(getClickCount(), 2, `count after two clicks`)
+
+      domNode.click()
+      assert.strictEqual(getClickCount(), 3, `count after three clicks`)
+    })
+  })
 
   suite(`ComponentNodeDescriptor`, function () {
     test(`name property`)
