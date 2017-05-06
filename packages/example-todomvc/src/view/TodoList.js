@@ -1,87 +1,116 @@
-import { merge } from 'most'
-import { subject } from 'most-subject'
+import { combine, merge } from 'most'
+import { domEvent } from '@most/dom-event'
+import { classnames } from 'classnames'
 
-import { streamDom } from '../stream-dom'
-import { findSelectorTarget } from './findSelectorTarget'
+import { declare, component, propTypes, renderItemStreams } from 'stream-dom'
+import { delegatedEvent } from './eventing'
 import * as actions from '../model/todo-actions'
 
-export function TodoList({ todos$ }) {
-  const editingId$ = subject()
 
-  const todoUi = ({ id, text, completed = false }) => {
-    const classes$ = editingId$.map(editingId => [ 'todo' ].concat(
-      id === editingId ? 'editing' : [],
-      completed ? 'completed' : []
-    ).join(' '))
+const TodoItem = component({
+  input: {
+    // TODO: Would a generic `value` type be appropriate?
+    id: propTypes.any,
+    text: propTypes.stream,
+    completed$: propTypes.stream,
+    editing$: propTypes.stream
+  },
 
-    return component(h => (
-      <li id={id} class={classes$}>
-        <div class="view">
-          <input class="toggle" type="checkbox" checked={completed} />
-          <label>{ text }</label>,
-          <button class="destroy" />
-        </div>
-        <input class="edit" value={text} />
-      </li>
-    ))
+  structure: ({ id, text$, completed$, editing$ }) => {
+    const class$ = editing$.map(editing => classnames({
+      todo: true,
+      editing
+    }))
+
+    return (<li id={id} class={class$}>
+      <div class="view">
+        <input type="checkbox" checked={completed$} class="toggle" />
+        <label>{text$}</label>
+        <button type="button" class="destroy" />
+      </div>
+      <input class="edit" value={text$} />
+    </li>)
+  },
+
+  output: ({ textInput }, { editing$ }) => {
+    // TODO: This abuses the output declaration. How to better declare these effects?
+    editing$.skipRepeats().observe(editing => {
+      if (editing) {
+        textInput.focus()
+        textInput.selectionStart = textInput.value.length
+      }
+    })
   }
+})
 
-  return component(
-    h => <ul node-name="root">{ todos$.map(todos => todos.map(todoUi)) }</ul>,
-    nodes => {
-      const { root } = nodes
+export const TodoList = component({
+  input: {
+    todos$: propTypes.stream,
+    editingId$: propTypes.feedback
+  },
 
-      const findTodoSelectorTarget = findSelectorTarget('.todo')
+  structure: ({ todos$, editingId$ }) => (<ul node-name="root" class="todo-list">
+    {renderItemStreams({
+      identify: todo => todo.id,
+      render: todo$ => <TodoItem
+        id={todo$.map(t => t.id)}
+        text={todo$.map(t => t.text)}
+        completed={todo$.map(t => t.completed)}
+        editing={combine(
+          (todo, editingId) => todo.id === editingId,
+          todo$,
+          editingId$
+        )}
+      />
+    }, todos$)}
+  </ul>),
 
-      const beginEdit$ = root.events.dblclick
-        .filter(e => e.target.matches('.todo label'))
-        .filter(findTodoSelectorTarget)
+  output: namedNodes => {
+    const { root } = namedNodes
 
-      const editFieldKeyDown$ = root.events.keydown
+    // TODO: Improve name
+    const delegatedTodoEventTransform = delegatedEvent('.todo')
+
+    const beginEdit$ = domEvent('dblclick', root)
+      .filter(e => e.target.matches('.todo label'))
+      .thru(delegatedTodoEventTransform)
+
+    const editFieldKeyDown$ = domEvent('keydown', root)
+      .filter(e => e.target.matches('.edit'))
+      .thru(delegatedTodoEventTransform)
+      .multicast()
+
+    const commitEdit$ = editFieldKeyDown$
+      .filter(e => e.key === 'Enter')
+      .multicast()
+
+    const abortEdit$ = merge(
+      editFieldKeyDown$.filter(e => e.key === 'Escape'),
+      root.on('blur', { capture: true })
         .filter(e => e.target.matches('.edit'))
-        .filter(findTodoSelectorTarget)
-        .multicast()
+    )
 
-      const commitEdit$ = editFieldKeyDown$
-        .filter(e => e.key === 'Enter')
-        .multicast()
-
-      const abortEdit$ = merge(
-        editFieldKeyDown$.filter(e => e.key === 'Escape'),
-        root.events.captureBlur.filter(e => e.target.matches('.edit'))
-      )
-
-      merge(
+    return {
+      editingId$: merge(
         beginEdit$.map(e => e.selectorTarget.id),
-        merge(commitEdit$, abortEdit$).constant(null)
-      )
-      .skipRepeats()
-      .observe(editingId => {
-        editingId$.next(editingId)
+        abortEdit$.constant(null)
+      ),
 
-        if (editingId !== null) {
-          const inputNode = document.querySelector(`#${editingId} .edit`)
-          inputNode.focus()
-          inputNode.selectionStart = inputNode.value.length
-        }
-      })
-
-      return {
-        edit$: commitEdit$.map(e => {
+      actions$: merge(
+        commitEdit$.map(e => {
           const { id } = e.selectorTarget
           const trimmedText = e.target.value.trim()
           return trimmedText.length === 0 ? actions.destroy(id) : actions.edit(id, trimmedText)
         }),
-        toggle$: root.events.change
+        domEvent('change', root)
           .filter(e => e.target.matches('.toggle'))
-          .filter(findTodoSelectorTarget)
+          .thru(delegatedTodoEventTransform)
           .map(e => actions.toggle(e.selectorTarget.id, e.target.checked)),
-        destroy$: root.events.click
-          .filter(findTodoSelectorTarget)
+        domEvent('click', root)
+          .thru(delegatedTodoEventTransform)
           .filter(e => e.target.matches('.destroy'))
           .map(e => actions.destroy(e.selectorTarget.id))
-      }
+      )
     }
-  )
-}
-
+  }
+})

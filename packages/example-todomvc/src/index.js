@@ -20,28 +20,22 @@ const filter$ = locationHash$.map(hash => (
   () => true
 ))
 
-const inputs = { action$: propTypes.feedback }
+const AppRoot = component({
+  input: {
+    action$: propTypes.feedback
+  },
+  structure: inputs => {
+    const { action$ } = inputs
+    const todos$ = todoStore('stream-dom-todomvc-todos', action$)
 
-function declareStructure (inputs) {
-  const { action$ } = inputs
-  const todos$ = todoStore('stream-dom-todomvc-todos', action$)
-
-  return declare(App, {
-    nodeName: 'app',
-    props: { todos$, locationHash$, filterRoutes, filter$ }
+    return declare(App, {
+      nodeName: 'app',
+      props: { todos$, locationHash$, filterRoutes, filter$ }
+    })
+  },
+  output: ({ app }) => ({
+    action$: app.action$
   })
-}
+})
 
-function declareOutputs (namedNodes) {
-  return {
-    action$: namedNodes.app.action$
-  }
-}
-
-mount(
-  document.body,
-  null,
-  declare(
-    component(inputs, declareStructure, declareOutputs)
-  )
-)
+mount(document.body, null, declare(AppRoot))
