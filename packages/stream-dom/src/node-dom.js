@@ -44,7 +44,19 @@ export function createTextNode (scope, str) {
 
 function processAttributes (scope, domNode, attributes) {
   for (let name in attributes) {
-    handleAttribute(scope, domNode, name, attributes[name])
+    // WORKAROUND:
+    // JSX spread attributes with namespace names are not yet supported.
+    // We cannot detect whether an property was specified via spread properties,
+    // so we detect and warn on embedded colon characters as a compromise.
+    if (/:/.test(name)) {
+      console.warn(
+        `\`attrs\` and JSX spread attributes which are added to \`attrs\` ` +
+        `may not include attributes prefixed with namespace names. ` +
+        `Ignoring '${name}'.`
+      )
+    } else {
+      handleAttribute(scope, domNode, name, attributes[name])
+    }
   }
 }
 

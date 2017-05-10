@@ -112,6 +112,11 @@ export function mount (parentNode, beforeNode, nodeDeclarations$) {
 }
 
 export function h (tag, args, children) {
+  if (arguments.length === 2 && Array.isArray(args)) {
+    children = args
+    args = {}
+  }
+
   if (typeof tag === `string`) {
     return declareElement(tag, args, children)
   } else if (typeof tag === `function`) {

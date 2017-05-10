@@ -183,6 +183,9 @@ suite(`streamDom`, function () {
   })
 
   suite(`h`, function () {
+    // TODO: `args` optional
+    // TODO: `children` optional
+
     test(`declares an element`, function () {
       const expectedTagName = `div`
       const expectedNamespaceUri = `test-uri`

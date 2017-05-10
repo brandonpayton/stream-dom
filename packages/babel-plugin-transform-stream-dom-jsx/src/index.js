@@ -1,152 +1,309 @@
-import esutils from 'esutils'
+export const propertyNamespaceUri = `http://happycode.net/ns/stream-dom/property`
+
+export const defaultNamespaceUriMap = {
+  html: `http://www.w3.org/1999/xhtml`,
+  svg: `http://www.w3.org/2000/svg`,
+  xlink: `http://www.w3.org/1999/xlink`,
+  prop: propertyNamespaceUri
+}
 
 export default function ({ types }) {
   const t = types
 
   // TODO: Fix Babylon allowing namespaced member expression
+  // TODO: Make namespaceUriMap configurable
+  // TODO: Support and test for boolean attributes
+  const namespaceNameToUriLiteral =
+    Object.keys(defaultNamespaceUriMap).reduce((memo, key) => {
+      memo[key] = t.stringLiteral(defaultNamespaceUriMap[key])
+      return memo
+    }, {})
 
   return {
-    inherits: require('babel-plugin-syntax-jsx'),
+    inherits: require(`babel-plugin-syntax-jsx`),
     visitor: {
       JSXElement: visitJSXElement
     }
   }
 
-  function visitJSXElement(path) {
+  function visitJSXElement (path) {
     const { node } = path
 
     path.replaceWith(isComponentName(node.openingElement.name) ? toComponent(node) : toDomElement(node))
 
-    function toDomElement({
+    function toDomElement ({
       openingElement: { attributes: jsxAttributes, name },
       children
     }) {
-      const [ elementName, namespaceName ] = isNamespacedName(name)
-        ? [ name.name.name, name.namespace.name ]
-        : [ name.name, undefined ]
+      const {
+        identifier: elementName,
+        namespaceUriLiteral
+      } = parseElementName(name)
 
-      const objectProperties = []
+      const { nodeName, attrs, nsAttrs, props } = parseElementAttributes(jsxAttributes)
 
-      if (namespaceName !== undefined) {
-        objectProperties.push(objectProperty('namespaceName', t.stringLiteral(namespaceName)))
-      }
+      const argsProperties = []
 
-      objectProperties.push(
-        objectProperty('attributes', toAttributesArray(jsxAttributes)),
-        objectProperty('children', mapChildren(children))
+      namespaceUriLiteral && argsProperties.push(
+        objectProperty(`namespaceUri`, namespaceUriLiteral)
       )
+      nodeName !== undefined && argsProperties.push(
+        objectProperty(`nodeName`, t.stringLiteral(nodeName))
+      )
+      attrs && argsProperties.push(objectProperty(`attrs`, attrs))
+      nsAttrs && argsProperties.push(objectProperty(`nsAttrs`, nsAttrs))
+      props && argsProperties.push(objectProperty(`props`, props))
 
-      return streamDomCallExpression('element', [
+      const args = argsProperties.length > 0
+        ? t.objectExpression(argsProperties)
+        : undefined
+
+      return streamDomDeclaration(
         t.stringLiteral(elementName),
-        t.objectExpression(objectProperties)
-      ])
+        { args, children }
+      )
     }
 
-    function toComponent({
+    function toComponent ({
       openingElement: { attributes: jsxAttributes, name },
       children
     }) {
-      return streamDomCallExpression(
-        'component',
-        [
-          isJsxMemberExpression(name) ? toMemberExpression(name) : t.identifier(name.name),
-          t.objectExpression([
-            objectProperty('attributes', toAttributesArray(jsxAttributes)),
-            objectProperty('children', mapChildren(children))
-          ])
-        ]
-      )
+      const componentTarget = isJsxMemberExpression(name)
+        ? toMemberExpression(name)
+        : t.identifier(name.name)
+
+      const { nodeName, input } = parseComponentAttributes(jsxAttributes)
+
+      const argsProperties = []
+      nodeName !== undefined && (argsProperties.push(
+        objectProperty(`nodeName`, nodeName)
+      ))
+      input !== undefined && (argsProperties.push(
+        objectProperty(`input`, input)
+      ))
+      const args = argsProperties.length > 0
+        ? t.objectExpression(argsProperties)
+        : undefined
+
+      return streamDomDeclaration(componentTarget, { args, children })
     }
 
-    function toAttributesArray(jsxAttributes) {
-      return t.arrayExpression(
-        jsxAttributes.map(jsxAttribute =>
-          jsxAttribute.type === 'JSXSpreadAttribute' ? jsxAttribute.argument : toAttributeObject(jsxAttribute)
-        )
+    function parseElementAttributes (jsxAttributes) {
+      let nodeName
+      const attrProperties = []
+      const nsAttrElements = []
+      const propsProperties = []
+
+      jsxAttributes.forEach(a => {
+        if (a.type === `JSXAttribute`) {
+          const { name, value } = a
+
+          if (name.type === `JSXIdentifier`) {
+            const parsedAttr = parseAttribute(name, value)
+
+            if (parsedAttr.nodeName !== undefined) {
+              nodeName = parsedAttr.nodeName
+            } else if (parsedAttr.attrProperty !== undefined) {
+              attrProperties.push(parsedAttr.attrProperty)
+            } else {
+              this.unexpected()
+            }
+          } else if (name.type === `JSXNamespacedName`) {
+            const nsUriLiteral = getNamespaceUriLiteral(name.namespace.name)
+
+            if (nsUriLiteral.value === propertyNamespaceUri) {
+              propsProperties.push(
+                objectProperty(name.name.name, parseAttributeValue(value))
+              )
+            } else {
+              nsAttrElements.push(
+                t.objectExpression([
+                  objectProperty(`nsUri`, getNamespaceUriLiteral(name.namespace.name)),
+                  objectProperty(`name`, t.stringLiteral(name.name.name)),
+                  objectProperty(`value`, parseAttributeValue(value))
+                ])
+              )
+            }
+          } else {
+            this.unexpected()
+          }
+        } else if (a.type === `JSXSpreadAttribute`) {
+          attrProperties.push(t.spreadProperty(a.argument))
+        } else {
+          this.unexpected()
+        }
+      })
+
+      const result = {}
+      nodeName !== undefined && (result.nodeName = nodeName)
+      attrProperties.length > 0 && (
+        result.attrs = t.objectExpression(attrProperties)
       )
+      nsAttrElements.length > 0 && (
+        result.nsAttrs = t.arrayExpression(nsAttrElements)
+      )
+      propsProperties.length > 0 && (
+        result.props = t.objectExpression(propsProperties)
+      )
+      return result
     }
 
-    function toAttributeObject(jsxAttribute) {
-      const { name: nameNode, value: valueNode } = jsxAttribute
+    function parseComponentAttributes (jsxAttributes) {
+      // TODO: Consider removing the `node-name` special case (it looks like an regular attribute but isn't)
+      let nodeName
+      const inputProperties = []
 
-      const [ namespace, jsxIdentifier ] = isNamespacedName(nameNode)
-        ? [ nameNode.namespace.name, nameNode.name ]
-        : [ null, nameNode ]
+      jsxAttributes.forEach(a => {
+        if (a.type === `JSXAttribute`) {
+          const { name, value } = a
 
-      const attributeProperties = []
+          if (name.type === `JSXIdentifier`) {
+            const parsedAttr = parseAttribute(name, value)
 
-      if (namespace) {
-        attributeProperties.push(objectProperty('namespace', t.stringLiteral(namespace)))
+            if (parsedAttr.nodeName !== undefined) {
+              nodeName = parsedAttr.nodeName
+            } else if (parsedAttr.attrProperty !== undefined) {
+              inputProperties.push(parsedAttr.attrProperty)
+            } else {
+              this.unexpected()
+            }
+          } else if (name.type === `JSXNamespacedName`) {
+            throw path.buildCodeFrameError(
+              `Namespaced attributes cannot be used for components.`
+            )
+          } else {
+            this.unexpected()
+          }
+        } else if (a.type === `JSXSpreadAttribute`) {
+          inputProperties.push(
+            t.spreadProperty(a.argument)
+          )
+        } else {
+          this.unexpected()
+        }
+      })
+
+      const result = {}
+      nodeName !== undefined && (result.nodeName = nodeName)
+      inputProperties.length > 0 && (
+        result.input = t.objectExpression(inputProperties)
+      )
+      return result
+    }
+
+    function parseAttribute (jsxIdentifier, value) {
+      const { name } = jsxIdentifier
+      const parsedValue = parseAttributeValue(value)
+
+      if (name === `node-name`) {
+        if (name.type !== `StringLiteral`) {
+          throw path.buildCodeFrameError(`node-name must be a string literal`)
+        }
+
+        return { nodeName: parsedValue }
+      } else {
+        return { attrProperty: objectProperty(name, parsedValue) }
       }
-
-      attributeProperties.push(
-        objectProperty('name', t.stringLiteral(jsxIdentifier.name)),
-        objectProperty('value',
-          valueNode === null ? t.booleanLiteral(true) :
-          valueNode.type === 'JSXExpressionContainer' ? valueNode.expression :
-          valueNode
-        )
-      )
-
-      return t.objectExpression(attributeProperties)
     }
 
-    function mapChildren(children) {
+    function parseAttributeValue (jsxAttributeValue) {
+      if (jsxAttributeValue === null) {
+        // This is a boolean attribute with no value.
+        return t.booleanLiteral(true)
+      } else {
+        const { type } = jsxAttributeValue
+        // TODO: What of JSXText type?
+        if (type === `StringLiteral` || type === `JSXElement`) {
+          return jsxAttributeValue
+        } else if (type === `JSXExpressionContainer`) {
+          return jsxAttributeValue.expression
+        } else {
+          this.unexpected()
+        }
+      }
+    }
+
+    function mapChildren (children) {
       return t.arrayExpression(children.map(childNode => (
-        childNode.type === 'JSXText' ? toText(childNode.value) :
-        childNode.type === 'JSXExpressionContainer' ? toExpression(childNode.expression) :
+        childNode.type === `JSXText` ? toText(childNode.value) :
+        childNode.type === `JSXExpressionContainer` ? childNode.expression :
         childNode
       )))
     }
 
-    function toText(str) {
-      return streamDomCallExpression('text', [ t.stringLiteral(str) ])
+    function toText (str) {
+      return t.stringLiteral(str)
     }
 
-    function toExpression(expressionNode) {
-      return streamDomCallExpression('expression', [ expressionNode ])
-    }
-
-    function isComponentName(name) {
+    function isComponentName (name) {
       return !isNamespacedName(name) && (
         isJsxMemberExpression(name) || (isJsxIdentifier(name) && /^[A-Z]/.test(name.name))
       )
     }
 
-    function toMemberExpression({ object, property }) {
+    function toMemberExpression ({ object, property }) {
       return t.memberExpression(
         isJsxMemberExpression(object) ? toMemberExpression(object) : t.identifier(object.name),
         t.identifier(property.name)
       )
     }
 
-    function isJsxIdentifier(name) {
-      return name.type === 'JSXIdentifier'
+    function isJsxIdentifier (name) {
+      return name.type === `JSXIdentifier`
     }
 
-    function isJsxMemberExpression(name) {
-      return name.type === 'JSXMemberExpression'
+    function isJsxMemberExpression (name) {
+      return name.type === `JSXMemberExpression`
     }
 
-    function isNamespacedName(name) {
-      return name.type === 'JSXNamespacedName'
+    function isNamespacedName (nameNode) {
+      return nameNode.type === `JSXNamespacedName`
     }
 
-    function streamDomCallExpression(name, args) {
+    function streamDomDeclaration (target, { args, children: jsxChildren }) {
+      const declarationArgs = [ target ]
+      args !== undefined && declarationArgs.push(args)
+      jsxChildren.length > 0 && declarationArgs.push(
+        mapChildren(jsxChildren)
+      )
+
       return t.callExpression(
-        t.memberExpression(t.identifier('streamDom'), t.identifier(name)),
-        args
+        t.identifier(`h`),
+        declarationArgs
       )
     }
 
-    function objectProperty(key, value) {
+    function objectProperty (key, value) {
       return t.objectProperty(toObjectKeyType(key), value)
     }
 
-    function toObjectKeyType(key) {
-      return esutils.keyword.isIdentifierNameES6(key)
+    function toObjectKeyType (key) {
+      return t.isValidIdentifier(key)
         ? t.identifier(key)
         : t.stringLiteral(key)
+    }
+
+    function parseElementName (nameNode) {
+      if (isNamespacedName(nameNode)) {
+        return {
+          identifier: nameNode.name.name,
+          namespaceUriLiteral: getNamespaceUriLiteral(nameNode.namespace.name)
+        }
+      } else {
+        return {
+          identifier: nameNode.name
+        }
+      }
+    }
+
+    function getNamespaceUriLiteral (nameStr) {
+      if (nameStr in namespaceNameToUriLiteral) {
+        return namespaceNameToUriLiteral[nameStr]
+      } else {
+        throw path.buildCodeFrameError(
+          `There is no namespace URI for namespace name '${nameStr}'`
+        )
+      }
     }
   }
 }

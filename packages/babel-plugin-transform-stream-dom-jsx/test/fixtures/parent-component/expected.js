@@ -1,4 +1,4 @@
-h(ParentComponent, {}, [
+h(ParentComponent, [
   "\n  ",
   h(TestComponent),
   "\n  ",

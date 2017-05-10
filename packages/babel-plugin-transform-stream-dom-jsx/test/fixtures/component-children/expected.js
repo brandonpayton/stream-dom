@@ -1,1 +1,1 @@
-h(TestComponent, {}, [ "expected" ])
+h(TestComponent, [ "expected" ])

@@ -1,4 +1,4 @@
-h('div', {}, [
+h('div', [
   '\n  ',
   h(TestComponent),
   '\n  ',
