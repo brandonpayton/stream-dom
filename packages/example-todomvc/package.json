@@ -1,6 +1,6 @@
 {
   "private": true,
-  "name": "stream-dom-example-todomvc",
+  "name": "example-todomvc",
   "version": "0.2.1",
   "description": "TodoMVC using stream-dom",
   "main": "js/app.js",
@@ -11,9 +11,8 @@
   "license": "MIT",
   "devDependencies": {
     "babel-core": "^6.24.1",
-    "babel-loader": "^6.4.1",
+    "babel-loader": "^7.0.0",
     "babel-plugin-transform-stream-dom-jsx": "^0.2.0",
-    "babel-preset-env": "^1.4.0",
     "eslint": "^3.19.0",
     "raw-loader": "^0.5.1",
     "style-loader": "^0.17.0",
@@ -27,8 +26,8 @@
     "lodash.assign": "^4.2.0",
     "most": "^1.3.0",
     "stream-dom": "^0.2.1",
-    "todomvc-app-css": "^2.0.6",
-    "todomvc-common": "^1.0.2",
-    "uuid": "^2.0.3"
+    "todomvc-app-css": "^2.1.0",
+    "todomvc-common": "^1.0.3",
+    "uuid": "^3.0.1"
   }
 }

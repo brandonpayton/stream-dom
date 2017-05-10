@@ -27,25 +27,24 @@ module.exports.createBaseConfig = function createBaseConfig (config) {
       devtool: `inline-source-map`,
 
       module: {
-        loaders: [{
+        rules: [{
           test: /\.js$/,
-          loader: `babel`,
+          loader: `babel-loader`,
           include: [
             `${__dirname}/src`,
             `${__dirname}/test`,
             `${__dirname}/test-util}`
           ],
           query: {
-            presets: [ `es2015`, `es2016` ]
+            presets: [ `env` ]
           }
         }]
       },
       resolve: {
-        modulesDirectories: [
-          ``,
+        modules: [
           `node_modules`
         ],
-        extensions: [ ``, `.js` ]
+        extensions: [ `.js` ]
       }
     },
 
