@@ -1,8 +1,8 @@
 import { combine, merge } from 'most'
 import { domEvent } from '@most/dom-event'
-import { classnames } from 'classnames'
+import classnames from 'classnames'
 
-import { declare, component, propTypes, renderItemStreams } from 'stream-dom'
+import { h, component, inputTypes, renderItemStreams } from 'stream-dom'
 import { delegatedEvent } from './eventing'
 import * as actions from '../model/todo-actions'
 
@@ -10,34 +10,39 @@ import * as actions from '../model/todo-actions'
 const TodoItem = component({
   input: {
     // TODO: Would a generic `value` type be appropriate?
-    id: propTypes.any,
-    text: propTypes.stream,
-    completed$: propTypes.stream,
-    editing$: propTypes.stream
+    id: inputTypes.any,
+    text: inputTypes.observable,
+    completed: inputTypes.observable,
+    editing: inputTypes.observable
   },
 
-  structure: ({ id, text$, completed$, editing$ }) => {
-    const class$ = editing$.map(editing => classnames({
+  structure: ({ id, text, completed, editing }) => {
+    // TODO: startWith should probably be at parent level
+    const class$ = editing.startWith(false).map(editing => classnames({
       todo: true,
       editing
     }))
 
     return (<li id={id} class={class$}>
       <div class="view">
-        <input type="checkbox" checked={completed$} class="toggle" />
-        <label>{text$}</label>
+        <input type="checkbox" checked={completed} class="toggle" />
+        <label>{text}</label>
         <button type="button" class="destroy" />
       </div>
-      <input class="edit" value={text$} />
+      <input node-name="textInput" class="edit" value={text} />
     </li>)
   },
 
-  output: ({ textInput }, { editing$ }) => {
+  output: ({ textInput }, { editing }) => {
     // TODO: This abuses the output declaration. How to better declare these effects?
-    editing$.skipRepeats().observe(editing => {
+    editing.skipRepeats().observe(editing => {
       if (editing) {
-        textInput.focus()
-        textInput.selectionStart = textInput.value.length
+        // HACK: Schedule focus because textInput isn't yet displayed
+        // TODO: Explore declarative side-effect path, possibly input-structure-output-sideEffects
+        setTimeout(() => {
+          textInput.focus()
+          textInput.selectionStart = textInput.value.length
+        })
       }
     })
   }
@@ -45,8 +50,8 @@ const TodoItem = component({
 
 export const TodoList = component({
   input: {
-    todos$: propTypes.stream,
-    editingId$: propTypes.feedback
+    todos$: inputTypes.observable,
+    editingId$: inputTypes.feedback
   },
 
   structure: ({ todos$, editingId$ }) => (<ul node-name="root" class="todo-list">
@@ -86,17 +91,17 @@ export const TodoList = component({
 
     const abortEdit$ = merge(
       editFieldKeyDown$.filter(e => e.key === 'Escape'),
-      root.on('blur', { capture: true })
+      domEvent('blur', root, { capture: true })
         .filter(e => e.target.matches('.edit'))
     )
 
     return {
       editingId$: merge(
         beginEdit$.map(e => e.selectorTarget.id),
-        abortEdit$.constant(null)
+        merge(commitEdit$, abortEdit$).constant(null)
       ),
 
-      actions$: merge(
+      action$: merge(
         commitEdit$.map(e => {
           const { id } = e.selectorTarget
           const trimmedText = e.target.value.trim()

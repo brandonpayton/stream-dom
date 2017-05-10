@@ -2,6 +2,8 @@ import { NodeDescriptor } from './node'
 import { isObservable } from './kind'
 import { defaultNamespaceUri } from './index'
 
+import { from } from 'most'
+import { hold } from '@most/hold'
 import { proxy } from 'most-proxy'
 
 const any = () => true
@@ -55,7 +57,7 @@ export function component ({
     const output =
       bindOutput(feedbackStreams, createOutput(namedNodes, input))
 
-    return new ComponentNodeDescriptor(name, rootDescriptor, output)
+    return new ComponentNodeDescriptor(nodeName, rootDescriptor, output)
   }
 }
 
@@ -100,13 +102,18 @@ export function bindInput (shapeDeclaration, actualInput) {
       result.input[key] = stream
       result.feedbackStreams[key] = attach
     } else {
-      const value = actualInput[key]
+      let value = actualInput[key]
       const valid = validator(value)
       if (!valid) {
         console.warn(`Invalid prop '${key}'`)
       }
 
       result.input[key] = value
+    }
+
+    if (isObservable(result.input[key])) {
+      // TODO: Is it actually the right thing to make all input streams hold/multicast?
+      result.input[key] = from(result.input[key]).thru(hold)
     }
 
     return result
@@ -127,6 +134,8 @@ export function createStructure (defaultNamespaceUri, scope, declaration) {
 
 // Expose for unit test
 export function bindOutput (feedbackStreams, output) {
+  // TODO: Bound output streams to end when component is destroyed
+
   Object.keys(feedbackStreams).forEach(key => {
     if (!(key in output)) {
       console.warn(`Unable to attach feedback stream for key '${key}'`)

@@ -2,15 +2,15 @@ import { combine, merge } from 'most'
 import { domEvent } from '@most/dom-event'
 import classnames from 'classnames';
 
-import { declare, component, propTypes } from 'stream-dom'
+import { h, component, inputTypes } from 'stream-dom'
 import * as actions from '../model/todo-actions'
 import { TodoList } from './TodoList'
 
 const input = {
-  todos$: propTypes.stream,
-  locationHash$: propTypes.stream,
-  filter$: propTypes.stream,
-  filterRoutes: propTypes.object
+  todos$: inputTypes.observable,
+  locationHash$: inputTypes.observable,
+  filter$: inputTypes.observable,
+  filterRoutes: inputTypes.object
 }
 
 function structure ({
@@ -58,7 +58,6 @@ function structure ({
         <span class="todo-count">
           <strong>{activeCount$} items left</strong>
         </span>
-        // TODO: Replace with FilterList component
         <ul class="filters">
           <FilterListItem hash={hashDefault} locationHash$={locationHash$} label="All" />
           <FilterListItem hash={hashShowActive} locationHash$={locationHash$} label="Active" />
@@ -109,9 +108,9 @@ export const App = component({ input, structure, output })
 
 const FilterListItem = component({
   input: {
-    hash: propTypes.string,
-    locationHash$: propTypes.stream,
-    label: propTypes.string
+    hash: inputTypes.string,
+    locationHash$: inputTypes.observable,
+    label: inputTypes.string
   },
   structure: ({ hash, locationHash$, label }) => {
     const class$ = locationHash$.map(currentHash => classnames({

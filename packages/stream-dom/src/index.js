@@ -4,7 +4,7 @@ import { sync as syncSubject, hold as holdSubject } from 'most-subject'
 import { NodeDeclaration } from './node'
 import { createElementNode } from './node-dom'
 import { createReplacementNode, createOrderedListNode } from './node-stream'
-import { toArray } from './kind'
+import { toArray, isObservable } from './kind'
 
 // TODO: Relocate to JSX transform
 export const defaultNamespaceUriMap = {
@@ -45,7 +45,7 @@ export function renderItemStreams ({ identify, render }, listStream) {
 }
 
 // TODO: Settle on "destroy" or "dispose"
-export function mount (parentNode, beforeNode, nodeDeclarations$) {
+export function mount (parentNode, beforeNode, nodeDeclaration) {
   const mounted$ = holdSubject(1, syncSubject())
   const destroy$ = holdSubject(1, syncSubject())
 
@@ -72,8 +72,10 @@ export function mount (parentNode, beforeNode, nodeDeclarations$) {
       mounted$.next()
       resolveMount()
     }
+
+    content$.drain()
   }
-  const dispose = () => {
+  const dispose = function () {
     if (!disposed) {
       disposed = true
 
@@ -95,23 +97,26 @@ export function mount (parentNode, beforeNode, nodeDeclarations$) {
     mounted$,
     destroy$
   }
-  const content$ = nodeDeclarations$.until(destroy$).multicast()
-  const rootDescriptor = createReplacementNode(scope, nodeDeclarations$)
+  // TODO: Reconsider support for root stream
+  const nodeDeclaration$ = isObservable(nodeDeclaration)
+    ? nodeDeclaration
+    : just(nodeDeclaration)
+  const content$ = nodeDeclaration$.until(destroy$).multicast()
+  const rootDescriptor = createReplacementNode(scope, nodeDeclaration$)
   rootDescriptor.insert(parentNode, beforeNode)
 
   setTimeout(mount)
-  content$.drain().then(dispose)
 
   return {
     rootDescriptor,
-    nodeDeclarations$,
+    nodeDeclaration$,
     promiseToMount,
     promiseToDispose,
     dispose
   }
 }
 
-export function h (tag, args, children) {
+export function h (tag, args = {}, children) {
   if (arguments.length === 2 && Array.isArray(args)) {
     children = args
     args = {}
@@ -148,7 +153,14 @@ function declareElement (name, {
   }
 }
 
-function declareComponent (Component, { nodeName, input }, children) {
+function declareComponent (
+  Component,
+  {
+    nodeName,
+    input = {}
+  } = {},
+  children
+) {
   return new NodeDeclaration(Component, {
     nodeName,
     // TODO: Consider warning if there is already a children key in `input`

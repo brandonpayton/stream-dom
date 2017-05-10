@@ -1,22 +1,19 @@
+const path = require('path')
+
 module.exports = {
   entry: {
-    'app': './src/app.js'
+    'app': './src/index.js'
   },
   devtool: 'source-map',
   output: {
     filename: '[name].js',
     sourceMapFilename: '[name].js.map',
     publicPath: '/js/',
-    // NOTE: Specifying this because webpack-dev-middleware requires `path` to be anything other than the default empty string
-    path: `${__dirname}/js/`
+    path: path.resolve(__dirname, 'dist')
   },
-  plugins: [],
   module: {
-    loaders: [{
-      test: /\.js$/,
-      loaders: [ 'babel' ],
-      include: __dirname,
-      exclude: /node_modules/
-    }]
+    rules: [
+      { test: /\.js$/, exclude: /node_modules/, loader: 'babel-loader' }
+    ]
   }
 }

@@ -35,7 +35,8 @@ export function createReplacementNode (scope, input$) {
   function replaceOnContentEvent (scope, domStartNode, domEndNode, children$) {
     return children$.map(toArray).map(children => {
       const childScope = Object.assign({}, scope, {
-        destroy$: merge(children$, scope.destroy$).take(1).multicast()
+        // TODO: Having to use skip() seems like a declaration smell. Is there a better way?
+        destroy$: merge(children$.skip(1), scope.destroy$).take(1).multicast()
       })
       return createNodeDescriptors(childScope, children)
     })
