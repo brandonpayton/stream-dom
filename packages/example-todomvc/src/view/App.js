@@ -40,13 +40,13 @@ function structure ({
   })
 
   return (<div>
-    <section class="todo-app">
+    <section class="todoapp">
       <header class="header">
         <h1>todos</h1>
         <input node-name="newTodo"
           class="new-todo"
           placeholder="What needs to be done?"
-          autofocus="true"/>
+          autofocus/>
       </header>
       <section class="main">
         <input node-name="toggleAll"
