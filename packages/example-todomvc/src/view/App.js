@@ -33,11 +33,16 @@ function structure ({
   const activeCount$ = allTodos$.map(
     todos => todos.reduce((count, t) => count + (t.completed ? 0 : 1), 0)
   )
+  const completedCount$ = allTodos$.map(
+    todos => todos.reduce((count, t) => count + (t.completed ? 1 : 0), 0)
+  )
 
-  const footerStyle$ = allTodos$.map(todos => {
-    const type = todos.length === 0 ? 'none' : ''
-    return `display: ${type}`
-  })
+  const footerStyle$ = allTodos$.map(
+    todos => todos.length === 0 ? `display: none` : ``
+  )
+  const clearCompletedStyle$ = completedCount$.map(
+    completedCount => completedCount === 0 ? `display: none` : ``
+  )
 
   return (<div>
     <section class="todoapp">
@@ -63,9 +68,10 @@ function structure ({
           <FilterListItem hash={hashShowActive} locationHash$={locationHash$} label="Active" />
           <FilterListItem hash={hashShowCompleted} locationHash$={locationHash$} label="Completed" />
         </ul>
-        <button node-name="clearCompleted" type="button" class="clear-completed">
-          Clear Completed
-        </button>
+        <button node-name="clearCompleted"
+          type="button"
+          class="clear-completed"
+          style={clearCompletedStyle$}>Clear Completed</button>
       </footer>
     </section>
     <footer class="info">
