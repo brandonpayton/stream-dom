@@ -166,20 +166,6 @@ suite(`streamDom`, function () {
       assert.isNull(rootDescriptor.domStartNode.parentNode)
       assert.isNull(rootDescriptor.domEndNode.parentNode)
     })
-    test(`removes stream from the DOM when the stream ends`, function () {
-      const content$ = sync()
-      mountHandle = mount(containerNode, null, content$)
-      const { rootDescriptor } = mountHandle
-
-      assert.isNotNull(rootDescriptor.domStartNode.parentNode)
-      assert.isNotNull(rootDescriptor.domEndNode.parentNode)
-      content$.complete()
-
-      return mountHandle.promiseToDispose.then(() => {
-        assert.isNull(rootDescriptor.domStartNode.parentNode)
-        assert.isNull(rootDescriptor.domEndNode.parentNode)
-      })
-    })
   })
 
   suite(`h`, function () {
