@@ -1,6 +1,6 @@
 # stream-dom
 
-An experimental declarative DOM library that models change and I/O with reactive streams.
+An experimental, declarative DOM library that models change and I/O with reactive streams.
 
 [![Build Status](https://travis-ci.org/brandonpayton/stream-dom.svg?branch=master)](https://travis-ci.org/brandonpayton/stream-dom)
 
