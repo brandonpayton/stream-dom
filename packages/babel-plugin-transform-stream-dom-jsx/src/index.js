@@ -48,7 +48,7 @@ export default function ({ types }) {
         objectProperty(`namespaceUri`, namespaceUriLiteral)
       )
       nodeName !== undefined && argsProperties.push(
-        objectProperty(`nodeName`, t.stringLiteral(nodeName))
+        objectProperty(`nodeName`, nodeName)
       )
       attrs && argsProperties.push(objectProperty(`attrs`, attrs))
       nsAttrs && argsProperties.push(objectProperty(`nsAttrs`, nsAttrs))
@@ -196,7 +196,7 @@ export default function ({ types }) {
       const parsedValue = parseAttributeValue(value)
 
       if (name === `node-name`) {
-        if (name.type !== `StringLiteral`) {
+        if (parsedValue.type !== `StringLiteral`) {
           throw path.buildCodeFrameError(`node-name must be a string literal`)
         }
 
