@@ -45,7 +45,7 @@ export default function ({ types }) {
       const argsProperties = []
 
       namespaceUriLiteral && argsProperties.push(
-        objectProperty(`namespaceUri`, namespaceUriLiteral)
+        objectProperty(`nsUri`, namespaceUriLiteral)
       )
       nodeName !== undefined && argsProperties.push(
         objectProperty(`nodeName`, nodeName)

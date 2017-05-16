@@ -1,3 +1,3 @@
 h("g", {
-  namespaceUri: "http://www.w3.org/2000/svg"
+  nsUri: "http://www.w3.org/2000/svg"
 });
