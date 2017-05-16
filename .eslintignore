@@ -1,1 +1,3 @@
-.gitignore
+packages/babel-plugin-transform-stream-dom-jsx/lib/
+packages/babel-plugin-transform-stream-dom-jsx/test/fixtures/
+packages/**/node_modules/

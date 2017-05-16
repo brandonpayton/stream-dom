@@ -1,6 +1,6 @@
 import { combine, merge } from 'most'
 import { domEvent } from '@most/dom-event'
-import classnames from 'classnames';
+import classnames from 'classnames'
 
 import { h, component, types } from 'stream-dom'
 import * as actions from '../model/todo-actions'
@@ -87,21 +87,21 @@ function output ({
   clearCompleted,
   todoList
 }) {
-  const newTodo$ = domEvent('keypress', newTodo)
-    .filter(e => e.key === 'Enter')
+  const newTodo$ = domEvent(`keypress`, newTodo)
+    .filter(e => e.key === `Enter`)
     .map(e => {
       const text = e.target.value.trim()
-      e.target.value = ''
+      e.target.value = ``
       return text
     })
     .filter(text => text.length > 0)
     .map(text => actions.create(text))
 
-  const toggleAll$ = domEvent('change', toggleAll).map(
+  const toggleAll$ = domEvent(`change`, toggleAll).map(
     e => actions.toggleAll(e.target.checked)
   )
 
-  const clearCompleted$ = domEvent('click', clearCompleted).map(
+  const clearCompleted$ = domEvent(`click`, clearCompleted).map(
     () => actions.destroyAllCompleted()
   )
 

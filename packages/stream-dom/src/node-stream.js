@@ -260,4 +260,3 @@ class NodeRecordList {
     delete this._nodeMap[key]
   }
 }
-

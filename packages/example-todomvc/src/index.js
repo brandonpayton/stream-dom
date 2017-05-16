@@ -4,14 +4,14 @@ import { h, mount, component, types } from 'stream-dom'
 import { App } from './view/App'
 import { todoStore } from './model/todo-store'
 
-const locationHash$ = domEvent('hashchange', window)
+const locationHash$ = domEvent(`hashchange`, window)
     .map(() => location.hash)
     .startWith(location.hash)
 
 const filterRoutes = {
-  hashDefault: '#/',
-  hashShowActive: '#/active',
-  hashShowCompleted: '#/completed'
+  hashDefault: `#/`,
+  hashShowActive: `#/active`,
+  hashShowCompleted: `#/completed`
 }
 location.hash = filterRoutes.hashDefault
 const filter$ = locationHash$.map(hash => (
@@ -27,12 +27,12 @@ const AppRoot = component({
   structure: inputs => {
     const { action$ } = inputs
     const todos$ = todoStore(
-      'stream-dom-todomvc-todos',
-      action$.tap(a => console.log('Action: ', a))
+      `stream-dom-todomvc-todos`,
+      action$.tap(a => console.log(`Action: `, a))
     )
 
     return h(App, {
-      nodeName: 'app',
+      nodeName: `app`,
       input: { todos$, locationHash$, filterRoutes, filter$ }
     })
   },

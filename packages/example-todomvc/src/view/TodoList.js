@@ -6,7 +6,6 @@ import { h, component, types, renderItemStreams } from 'stream-dom'
 import { delegatedEvent } from './eventing'
 import * as actions from '../model/todo-actions'
 
-
 const TodoItem = component({
   input: {
     // TODO: Would a generic `value` type be appropriate?
@@ -74,25 +73,25 @@ export const TodoList = component({
     const { root } = namedNodes
 
     // TODO: Improve name
-    const delegatedTodoEventTransform = delegatedEvent('.todo')
+    const delegatedTodoEventTransform = delegatedEvent(`.todo`)
 
-    const beginEdit$ = domEvent('dblclick', root)
-      .filter(e => e.target.matches('.todo label'))
+    const beginEdit$ = domEvent(`dblclick`, root)
+      .filter(e => e.target.matches(`.todo label`))
       .thru(delegatedTodoEventTransform)
 
-    const editFieldKeyDown$ = domEvent('keydown', root)
-      .filter(e => e.target.matches('.edit'))
+    const editFieldKeyDown$ = domEvent(`keydown`, root)
+      .filter(e => e.target.matches(`.edit`))
       .thru(delegatedTodoEventTransform)
       .multicast()
 
     const commitEdit$ = editFieldKeyDown$
-      .filter(e => e.key === 'Enter')
+      .filter(e => e.key === `Enter`)
       .multicast()
 
     const abortEdit$ = merge(
-      editFieldKeyDown$.filter(e => e.key === 'Escape'),
-      domEvent('blur', root, { capture: true })
-        .filter(e => e.target.matches('.edit'))
+      editFieldKeyDown$.filter(e => e.key === `Escape`),
+      domEvent(`blur`, root, { capture: true })
+        .filter(e => e.target.matches(`.edit`))
     )
 
     return {
@@ -107,13 +106,13 @@ export const TodoList = component({
           const trimmedText = e.target.value.trim()
           return trimmedText.length === 0 ? actions.destroy(id) : actions.edit(id, trimmedText)
         }),
-        domEvent('change', root)
-          .filter(e => e.target.matches('.toggle'))
+        domEvent(`change`, root)
+          .filter(e => e.target.matches(`.toggle`))
           .thru(delegatedTodoEventTransform)
           .map(e => actions.toggle(e.selectorTarget.id, e.target.checked)),
-        domEvent('click', root)
+        domEvent(`click`, root)
           .thru(delegatedTodoEventTransform)
-          .filter(e => e.target.matches('.destroy'))
+          .filter(e => e.target.matches(`.destroy`))
           .map(e => actions.destroy(e.selectorTarget.id))
       )
     }
