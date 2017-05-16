@@ -21,7 +21,7 @@ export function createElementNode (scope, args) {
 
   const childScope = namespaceUri === parentNamespaceUri
     ? scope
-    : Object.assign({}, { parentNamespaceUri: namespaceUri })
+    : Object.assign({}, scope, { parentNamespaceUri: namespaceUri })
 
   processAttributes(childScope, domNode, attrs)
   processNamespacedAttributes(childScope, domNode, nsAttrs)
@@ -92,20 +92,23 @@ function handleAttribute (scope, elementNode, name, valueOrStream, nsUri) {
 }
 
 function setAttribute (elementNode, namespaceUri, name, value) {
-  // Attributes with no value are treated as boolean
-  value === null && (value = true)
-
   if (value === true || value === false) {
     setBooleanAttribute(elementNode, namespaceUri, name, value)
-  } else {
+  } else if (namespaceUri) {
     elementNode.setAttributeNS(namespaceUri, name, value)
+  } else {
+    elementNode.setAttribute(name, value)
   }
 }
 
 function setBooleanAttribute (elementNode, namespaceUri, name, value) {
   value
-    ? elementNode.setAttributeNS(namespaceUri, name, ``)
-    : elementNode.removeAttributeNS(namespaceUri, name)
+    ? namespaceUri
+      ? elementNode.setAttributeNS(namespaceUri, name, ``)
+      : elementNode.setAttribute(name, ``)
+    : namespaceUri
+      ? elementNode.removeAttributeNS(namespaceUri, name)
+      : elementNode.removeAttribute(name)
 }
 
 function getNamespaceUri (scope, nsUri) {
