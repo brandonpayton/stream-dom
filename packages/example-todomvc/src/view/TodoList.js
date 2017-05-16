@@ -2,7 +2,7 @@ import { combine, merge } from 'most'
 import { domEvent } from '@most/dom-event'
 import classnames from 'classnames'
 
-import { h, component, inputTypes, renderItemStreams } from 'stream-dom'
+import { h, component, types, renderItemStreams } from 'stream-dom'
 import { delegatedEvent } from './eventing'
 import * as actions from '../model/todo-actions'
 
@@ -10,10 +10,10 @@ import * as actions from '../model/todo-actions'
 const TodoItem = component({
   input: {
     // TODO: Would a generic `value` type be appropriate?
-    id: inputTypes.any,
-    text: inputTypes.observable,
-    completed: inputTypes.observable,
-    editing: inputTypes.observable
+    id: types.any,
+    text: types.observable,
+    completed: types.observable,
+    editing: types.observable
   },
 
   structure: ({ id, text, completed, editing }) => {
@@ -50,8 +50,8 @@ const TodoItem = component({
 
 export const TodoList = component({
   input: {
-    todos$: inputTypes.observable,
-    editingId$: inputTypes.feedback
+    todos$: types.observable,
+    editingId$: types.feedback
   },
 
   structure: ({ todos$, editingId$ }) => (<ul node-name="root" class="todo-list">

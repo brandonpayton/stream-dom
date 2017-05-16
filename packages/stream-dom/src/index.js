@@ -170,4 +170,4 @@ function declareComponent (
   })
 }
 
-export { component, inputTypes } from './node-component'
+export { component, types } from './node-component'

@@ -22,7 +22,7 @@ const feedback = () => true
 // order to detect `feedback` declarations
 const children = v => Array.isArray(v)
 
-export const inputTypes = {
+export const types = {
   required,
   any,
   boolean,

@@ -3,7 +3,7 @@ import { fromPromise } from 'most'
 import { sync as syncSubject } from 'most-subject'
 import { domEvent } from '@most/dom-event'
 
-import { component, inputTypes } from '../src/node-component'
+import { component, types } from '../src/node-component'
 import { NodeDeclaration } from '../src/node'
 import { createElementNode } from '../src/node-dom'
 
@@ -49,7 +49,7 @@ suite(`node-component`, function () {
   test(`static input and structure`, function () {
     const TestComponent = component({
       input: {
-        value: inputTypes.number
+        value: types.number
       },
       structure: input => new NodeDeclaration(createElementNode, {
         name: `section`,
@@ -75,7 +75,7 @@ suite(`node-component`, function () {
     const class$ = syncSubject()
     const TestComponent = component({
       input: {
-        class$: inputTypes.observable
+        class$: types.observable
       },
       structure: input => new NodeDeclaration(createElementNode, {
         name: `span`,
@@ -152,7 +152,7 @@ suite(`node-component`, function () {
 
     const TestComponent = component({
       input: {
-        multiplier: inputTypes.number
+        multiplier: types.number
       },
       structure: input => new NodeDeclaration(createElementNode, {
         nodeName: `buttonNode`,
@@ -195,7 +195,7 @@ suite(`node-component`, function () {
   test(`feedback streams`, function () {
     const TestComponent = component({
       input: {
-        clickCount$: inputTypes.feedback
+        clickCount$: types.feedback
       },
       structure: input => new NodeDeclaration(createElementNode, {
         nodeName: `rootNode`,
@@ -240,7 +240,7 @@ suite(`node-component`, function () {
   })
 
   suite(`input`, function () {
-    suite(`inputTypes validation`, function () {
+    suite(`types validation`, function () {
       test(`required`)
       test(`any`)
       test(`boolean`)

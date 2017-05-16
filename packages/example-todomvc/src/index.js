@@ -1,5 +1,5 @@
 import { domEvent } from '@most/dom-event'
-import { h, mount, component, inputTypes } from 'stream-dom'
+import { h, mount, component, types } from 'stream-dom'
 
 import { App } from './view/App'
 import { todoStore } from './model/todo-store'
@@ -22,7 +22,7 @@ const filter$ = locationHash$.map(hash => (
 
 const AppRoot = component({
   input: {
-    action$: inputTypes.feedback
+    action$: types.feedback
   },
   structure: inputs => {
     const { action$ } = inputs

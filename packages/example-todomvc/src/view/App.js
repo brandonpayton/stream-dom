@@ -2,15 +2,15 @@ import { combine, merge } from 'most'
 import { domEvent } from '@most/dom-event'
 import classnames from 'classnames';
 
-import { h, component, inputTypes } from 'stream-dom'
+import { h, component, types } from 'stream-dom'
 import * as actions from '../model/todo-actions'
 import { TodoList } from './TodoList'
 
 const input = {
-  todos$: inputTypes.observable,
-  locationHash$: inputTypes.observable,
-  filter$: inputTypes.observable,
-  filterRoutes: inputTypes.object
+  todos$: types.observable,
+  locationHash$: types.observable,
+  filter$: types.observable,
+  filterRoutes: types.object
 }
 
 function structure ({
@@ -114,9 +114,9 @@ export const App = component({ input, structure, output })
 
 const FilterListItem = component({
   input: {
-    hash: inputTypes.string,
-    locationHash$: inputTypes.observable,
-    label: inputTypes.string
+    hash: types.string,
+    locationHash$: types.observable,
+    label: types.string
   },
   structure: ({ hash, locationHash$, label }) => {
     const class$ = locationHash$.map(currentHash => classnames({
