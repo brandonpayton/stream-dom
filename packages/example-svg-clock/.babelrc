@@ -1,0 +1,4 @@
+{
+  "presets": [ "env" ],
+  "plugins": [ "transform-stream-dom-jsx", "transform-object-rest-spread" ]
+}
